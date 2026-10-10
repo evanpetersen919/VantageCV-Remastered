@@ -31,7 +31,8 @@ from showing the detector any extra scans.
   exact-instance maps at the same pixel.
 - **Consequence stated in advance.** Only what the camera sees can produce a return: a single forward capture gives a
   sector of about 106 degrees horizontal by 74 degrees vertical (`docs/experiments/37`), not 360 degrees. KITTI's 3D
-  benchmark only labels and scores objects inside the front camera's field of view, so stage 2 needs only that sector. A
+  benchmark labels and scores only objects inside the front camera's field of view (as its development kit describes it;
+  to be confirmed at download, not verified locally), so stage 2 needs only that sector. A
   full 360 degree sweep (four captures, 90 degrees apart, from one position) is a later extension, not part of this
   registration.
 
