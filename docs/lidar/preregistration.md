@@ -137,4 +137,8 @@ would be a new amendment with its own detector recipe and rules, written before 
 
 ## Amendments
 
-(none yet)
+**2026-10-10, amendment 1 (no rule changed).** KITTI's benchmark page states that work without a peer-reviewed paper
+"must be evaluated on a split of the training set" and may not be submitted to the test server. Stage 2 already does
+this: it trains on a subset of KITTI's labelled training split and is scored on the held-out validation part of that
+split, using KITTI's own metric code locally. **No submission is made to the KITTI test server**, and the results are not
+presented as leaderboard entries. The test split's labels are not available and are not used.
