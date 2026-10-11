@@ -63,21 +63,28 @@ sed -i "s/666/${SEED}/g" "tools/train_${NAME}.py"
 if grep -q "666" "tools/train_${NAME}.py" || ! grep -q "random_seed(${SEED}" "tools/train_${NAME}.py"; then
   echo "ERROR: seed patch did not apply (train.py changed upstream?)" >&2; exit 1
 fi
-trap 'rm -rf "$WORK" "tools/train_${NAME}.py"' EXIT
 
+# KITTI's road-plane files (planes/) are a separate download that is not part of the object-detection
+# archives, and the synthetic frames have none. Ground-truth sampling then places pasted objects at their
+# original heights (USE_ROAD_PLANE False); the same for every arm (docs/lidar/preregistration.md, amendment 6).
 cd tools
+LOCAL="${NAME}"
+sed "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/" cfgs/dataset_configs/kitti_dataset.yaml   > "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"
+sed -e "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/"     -e "s#cfgs/dataset_configs/kitti_dataset.yaml#cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml#"     cfgs/kitti_models/pointpillar.yaml > "cfgs/kitti_models/pointpillar_${LOCAL}.yaml"
+grep -q "USE_ROAD_PLANE: True" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"   && { echo "ERROR: road plane still enabled in the local config" >&2; exit 1; }
+trap 'rm -rf "$WORK" "train_${NAME}.py" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"' EXIT
 echo "=== $NAME: training PointPillars (arm $ARM, seed $SEED, $EPOCHS epochs, $(wc -l < "$WORK/select/ImageSets/train.txt") frames) ==="
-python "train_${NAME}.py" --cfg_file "cfgs/kitti_models/pointpillar.yaml" --extra_tag "$NAME" \
+python "train_${NAME}.py" --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" \
   --fix_random_seed --ckpt_save_interval 1 --max_ckpt_save_num "$SELECT_LAST" --workers 4 \
   --set OPTIMIZATION.NUM_EPOCHS "$EPOCHS" DATA_CONFIG.DATA_PATH "$WORK/select"
 
-OUT="output/kitti_models/pointpillar/$NAME"
+OUT="output/kitti_models/pointpillar_${LOCAL}/$NAME"
 echo "=== $NAME: choosing the checkpoint on the held-out slice ==="
 BEST=""; BEST_M=-1
 for EP in $(seq $((EPOCHS - SELECT_LAST + 1)) "$EPOCHS"); do
   CK="$OUT/ckpt/checkpoint_epoch_${EP}.pth"
   [ -f "$CK" ] || continue
-  python test.py --cfg_file "cfgs/kitti_models/pointpillar.yaml" --extra_tag "$NAME" --ckpt "$CK" \
+  python test.py --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" --ckpt "$CK" \
     --set DATA_CONFIG.DATA_PATH "$WORK/select" > "$WORK/select_${EP}.log" 2>&1
   M=$(python -c "
 import sys
@@ -89,7 +96,7 @@ done
 [ -n "$BEST" ] || { echo "ERROR: no checkpoint was evaluated" >&2; exit 1; }
 
 echo "=== $NAME: scoring epoch $BEST_EP on KITTI validation ==="
-python test.py --cfg_file "cfgs/kitti_models/pointpillar.yaml" --extra_tag "$NAME" --ckpt "$BEST" \
+python test.py --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" --ckpt "$BEST" \
   --set DATA_CONFIG.DATA_PATH "$WORK/final" > "$WORK/final.log" 2>&1
 mkdir -p "$HPC_ROOT/results"
 python - "$WORK/final.log" "$HPC_ROOT/results/lidar_${ARM}_s${SEED}_kitti_val.json" "$ARM" "$SEED" "$BEST_EP" "$BEST_M" <<'PY'

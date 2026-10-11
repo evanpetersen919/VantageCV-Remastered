@@ -205,3 +205,13 @@ Probe at 0.18 degrees: 16,457 points in the image view (86% of KITTI's) and per-
 KITTI's. The synthetic cars return more points than real ones at range, as expected of a clean surface with no dropout
 (dark and specular paint, rain); the pattern is not tuned further, as that would be fitting the supplement to the test
 distribution, and the full set's table (section 5) is reported as measured.
+
+**2026-10-11, amendment 6 (recipe detail forced by missing files; written before any stage 2 detector is trained;
+no decision rule changed).** OpenPCDet's KITTI PointPillars configuration uses ground-truth sampling (pasting objects
+cropped from other training scans) with `USE_ROAD_PLANE: True`, which places pasted objects on each scan's road plane
+from KITTI's separately distributed `planes/` files. Those files are not part of the object-detection archives that
+were downloaded, and the synthetic frames have none. The recipe is therefore run with `USE_ROAD_PLANE: False` in
+**every arm and seed**: pasted objects keep the height at which they were cropped. This is the only change to the
+OpenPCDet PointPillars configuration other than the number of epochs (default 80, unchanged), the data paths and the
+random seed; it is applied by the job script (`hpc/lidar/run_lidar_arm.sbatch`) to a job-local copy of the
+configuration files. It may lower absolute AP against published PointPillars numbers; it affects A, B and E alike.
