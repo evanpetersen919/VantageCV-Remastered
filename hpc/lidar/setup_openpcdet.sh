@@ -84,6 +84,7 @@ fi
 tail -n 3 "$BUILD_LOG"
 
 python - <<'PY'
+import torch  # noqa: F401  (loads libc10 before the compiled extensions)
 import pcdet
 from pcdet.ops.iou3d_nms import iou3d_nms_cuda  # noqa: F401  (fails if the extension did not build)
 print("pcdet", pcdet.__version__, "OK")
