@@ -178,3 +178,12 @@ Consequences, fixed now:
 4. The azimuth step was **not** measured cleanly (the one-band estimate mixed channels and gave a median 0.18 degree,
    twice the published ~0.09); it stays a **choice** at 0.1 degree, and the points-per-scan comparison in section 5 is
    the check that the density is right: the synthetic scan should have about 27,000 points in the sector.
+
+**2026-10-10, amendment 4 (wording of the split; no rule changed).** Section 4 says "KITTI 3D object detection, the
+official validation split". KITTI itself publishes only a labelled training set (7,481 frames) and an unlabelled test
+set; the train/validation division used by 3D detection work is the **standard 3,712 / 3,769 frame split** (Chen et al.
+2015, as shipped by OpenPCDet). The two lists are stored in `configs/kitti_splits/` (taken from the OpenPCDet repository,
+Apache-2.0; checked here: disjoint, and together exactly frames 000000 to 007480). Everywhere the preregistration says
+"validation split" it means this one. The 10% real base of section 4 is drawn from the 3,712 training frames (about 371),
+seeded, and the validation frames are never used for training or for choosing a checkpoint other than by the rule
+fixed for the camera studies (a held-out slice of the training frames).
