@@ -14,7 +14,7 @@ CFG="tools/cfgs/kitti_models/pointpillar.yaml"
 
 source "$HPC_CONFIG"
 [ -f "$(dirname "$HPC_CONFIG")/config.local.env" ] && source "$(dirname "$HPC_CONFIG")/config.local.env"
-for m in $MODULES; do module load "$m"; done
+for m in $MODULES ${LIDAR_MODULES:-}; do module load "$m"; done
 source "$HPC_ROOT/venv-lidar/bin/activate"
 export PYTHONPATH="$HPC_ROOT/repo:${PYTHONPATH:-}"
 SRC="$HPC_ROOT/OpenPCDet"

@@ -6,14 +6,17 @@
 # stops with a clear message at each check and never guesses a package name. Set these before running:
 #   SPCONV_PACKAGE   the spconv wheel that matches the cluster's CUDA, e.g. spconv-cu118 (see the spconv README)
 #   PYTHON           an interpreter OpenPCDet supports (3.8 to 3.10 is the safe range; default python3)
-#   TORCH_INDEX      pip index for the CUDA build of PyTorch (default from hpc/config.env)
+#   LIDAR_MODULES    modules for this environment only, set in hpc/config.local.env (e.g. "python39 cuda11.7/toolkit/11.7.1"),
+#                    so the camera studies' environment is not touched
+#   LIDAR_TORCH_INDEX  pip index for the CUDA build of PyTorch (default: TORCH_INDEX from hpc/config.env)
+#   TORCH_VERSION / TORCHVISION_VERSION  pin both (e.g. 1.13.1 and 0.14.1, the range OpenPCDet is used with)
 #   OPENPCDET_REF    git tag or commit to build (default v0.6.0)
 #   TORCH_CUDA_ARCH_LIST   GPU architectures to compile for, e.g. "8.0;8.6" (default: let torch detect)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 source "$HERE/config.env"
 [ -f "$HERE/config.local.env" ] && source "$HERE/config.local.env"
-for m in $MODULES; do module load "$m"; done
+for m in $MODULES ${LIDAR_MODULES:-}; do module load "$m"; done
 
 : "${SPCONV_PACKAGE:?set SPCONV_PACKAGE to the spconv wheel for the CUDA version here, e.g. spconv-cu118}"
 PYTHON="${PYTHON:-python3}"
@@ -32,7 +35,12 @@ PY
 [ -d "$VENV" ] || $PYTHON -m venv "$VENV"
 source "$VENV/bin/activate"
 pip install --upgrade pip wheel setuptools
-pip install torch torchvision --index-url "$TORCH_INDEX"
+LIDAR_TORCH_INDEX="${LIDAR_TORCH_INDEX:-$TORCH_INDEX}"
+if [ -n "${TORCH_VERSION:-}" ]; then
+  pip install "torch==$TORCH_VERSION" "torchvision==${TORCHVISION_VERSION:?set TORCHVISION_VERSION with TORCH_VERSION}" --index-url "$LIDAR_TORCH_INDEX"
+else
+  pip install torch torchvision --index-url "$LIDAR_TORCH_INDEX"
+fi
 python -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cuda, 'available', torch.cuda.is_available())"
 which nvcc >/dev/null 2>&1 || { echo "ERROR: nvcc not found; load a CUDA module (set MODULES in hpc/config.local.env) so the extensions can build" >&2; exit 1; }
 
