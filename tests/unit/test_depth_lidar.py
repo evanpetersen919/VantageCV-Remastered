@@ -6,7 +6,13 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from src.sensors.depth_lidar import BeamPattern, sample_scan, to_velodyne_frame, write_kitti_bin
+from src.sensors.depth_lidar import (
+    KITTI_PATTERN,
+    BeamPattern,
+    sample_scan,
+    to_velodyne_frame,
+    write_kitti_bin,
+)
 
 WIDTH, HEIGHT = 1920, 1080
 FOCAL = (HEIGHT / 2.0) / np.tan(np.radians(73.74 / 2.0))
@@ -101,3 +107,13 @@ def test_beam_pattern_counts() -> None:
     assert len(pattern.elevations_deg()) == 64
     assert len(pattern.azimuths_deg()) == 1001
     assert pattern.elevations_deg()[0] == pytest.approx(-pattern.vertical_fov_deg / 2.0)
+
+
+def test_kitti_pattern_matches_the_measured_sensor() -> None:
+    """Amendment 3: 81.6 degrees across, elevations -24.8 to +2.0, 80 m, 64 channels."""
+    elevations = KITTI_PATTERN.elevations_deg()
+    azimuths = KITTI_PATTERN.azimuths_deg()
+    assert len(elevations) == 64
+    assert elevations[0] == pytest.approx(-24.8) and elevations[-1] == pytest.approx(2.0)
+    assert azimuths[0] == pytest.approx(-40.8) and azimuths[-1] == pytest.approx(40.8)
+    assert KITTI_PATTERN.max_range_m == 80.0

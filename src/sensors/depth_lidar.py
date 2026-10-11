@@ -27,7 +27,8 @@ class BeamPattern:
     """Beam directions of the simulated sensor, as angles from the camera's viewing axis.
 
     ``channels`` elevations are spaced uniformly over ``vertical_fov_deg`` and azimuths over
-    ``horizontal_fov_deg`` at ``azimuth_step_deg``; both fields are centred on the axis.
+    ``horizontal_fov_deg`` at ``azimuth_step_deg``; the horizontal field is centred on the axis and
+    the vertical one on ``elevation_centre_deg`` (0 by default, a level sensor).
     """
 
     channels: int = 64
@@ -35,17 +36,32 @@ class BeamPattern:
     horizontal_fov_deg: float = 106.0
     azimuth_step_deg: float = 0.1
     max_range_m: float = 120.0
+    elevation_centre_deg: float = 0.0
 
     def elevations_deg(self) -> npt.NDArray[np.float64]:
         """Channel elevations, bottom to top."""
         half = self.vertical_fov_deg / 2.0
-        return np.linspace(-half, half, self.channels)
+        return np.linspace(-half, half, self.channels) + self.elevation_centre_deg
 
     def azimuths_deg(self) -> npt.NDArray[np.float64]:
         """Azimuth samples, left to right."""
         half = self.horizontal_fov_deg / 2.0
         count = int(np.floor(self.horizontal_fov_deg / self.azimuth_step_deg + 1e-9)) + 1
         return np.linspace(-half, half, count)
+
+
+# The stage 2 sensor of docs/lidar/preregistration.md, amendment 3: KITTI's front camera field
+# (81.6 degrees horizontal, from its calibration: 721.5 px focal length, 1242 px wide), elevations
+# from the lowest KITTI return (-24.8) to its 99th percentile rounded down (+2.0), the measured
+# 80 m maximum range, and a 0.1 degree azimuth step (a choice; not cleanly measured).
+KITTI_PATTERN = BeamPattern(
+    channels=64,
+    vertical_fov_deg=26.8,
+    horizontal_fov_deg=81.6,
+    azimuth_step_deg=0.1,
+    max_range_m=80.0,
+    elevation_centre_deg=-11.4,
+)
 
 
 @dataclass

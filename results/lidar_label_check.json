@@ -1,0 +1,33 @@
+{
+ "frames": 1387,
+ "dataset": "live_dataset\\rider_v18",
+ "margin_m": 0.1,
+ "min_points": 20,
+ "pattern": {
+  "channels": 64,
+  "azimuth_step_deg": 0.1
+ },
+ "car": {
+  "objects_with_enough_points": 7563,
+  "pooled_share_inside": 0.9978692924260472,
+  "per_object_share_p5_p50": [
+   0.9830508474576272,
+   1.0
+  ],
+  "labelled_points": 3943291
+ },
+ "person": {
+  "objects_with_enough_points": 2589,
+  "pooled_share_inside": 0.9999405185948556,
+  "per_object_share_p5_p50": [
+   1.0,
+   1.0
+  ],
+  "labelled_points": 722915
+ },
+ "cars_with_too_few_points": {
+  "count": 1517,
+  "median_distance_m": 44.89659511350973
+ },
+ "passed_3_3": true
+}
