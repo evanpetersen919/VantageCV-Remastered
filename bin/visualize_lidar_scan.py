@@ -38,6 +38,7 @@ from src.sensors.lidar_view import (  # noqa: E402  pylint: disable=wrong-import
     BEV_AHEAD_M,
     BEV_SIDE_M,
     BOX_COLOURS,
+    BOX_EDGES,
     labelled_boxes,
     load_frame,
 )
@@ -97,22 +98,6 @@ def draw(  # pylint: disable=too-many-locals,too-many-statements
     figure.savefig(target, dpi=110)
     plt.close(figure)
     return target
-
-
-BOX_EDGES = (
-    (0, 1),
-    (1, 2),
-    (2, 3),
-    (3, 0),
-    (4, 5),
-    (5, 6),
-    (6, 7),
-    (7, 4),
-    (0, 4),
-    (1, 5),
-    (2, 6),
-    (3, 7),
-)
 
 
 def _draw_3d(axes: Any, loaded: Frame, elevation: float, azimuth: float) -> None:

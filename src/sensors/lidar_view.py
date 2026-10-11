@@ -22,6 +22,21 @@ from src.sensors.depth_lidar import KITTI_PATTERN, BeamPattern, sample_scan
 FULL_PATTERN = BeamPattern(channels=64, azimuth_step_deg=0.1, max_range_m=80.0)
 BOX_COLOURS = {3: "tab:red", 8: "tab:orange", 6: "tab:brown", 1: "tab:cyan", 10: "tab:green"}
 BEV_AHEAD_M, BEV_SIDE_M = 60.0, 30.0
+# edges of a box from the corner order of ``box_corners`` (bottom face 0-3, top face 4-7)
+BOX_EDGES = (
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 0),
+    (4, 5),
+    (5, 6),
+    (6, 7),
+    (7, 4),
+    (0, 4),
+    (1, 5),
+    (2, 6),
+    (3, 7),
+)
 
 
 def class_colours(classes: npt.NDArray[np.uint8]) -> npt.NDArray[np.float64]:
