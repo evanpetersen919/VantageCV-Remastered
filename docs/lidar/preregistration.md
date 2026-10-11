@@ -153,3 +153,28 @@ depths agree within 5% of the nearest (a **choice**), and otherwise uses the nea
 an object edge. On the synthetic ground plane the interpolated range error is below 1 cm. Check 3.1 is measured on the
 registered sampler; the nearest-pixel error is reported beside it. The default sensor pattern is 64 channels over
 the camera's vertical field and 0.1 degree azimuth steps with a 120 m range limit (a **choice**).
+
+**2026-10-10, amendment 3 (KITTI sensor facts measured from the downloaded training data; the stage 2 synthetic setup
+is fixed from them before any synthetic scan is made; no decision rule changed).** All numbers below are measured on
+`F:/datasets/kitti/training` (7,481 frames, extracted by `bin/extract_kitti.py`; 150 random scans for the scan
+statistics, every tenth label file for the mounting height), not quoted from a paper.
+
+| Measured | Value |
+|---|---|
+| Points per scan | 119,450 mean; 27,309 mean inside the front camera's horizontal field |
+| Elevation of returns | minimum -24.86 degrees, 1st percentile -23.21, 99th percentile +2.82 (the maximum, +9.07, is a few outliers) |
+| Range inside the camera field | median 9.8 m, 95th percentile 42.3 m, maximum 80.0 m |
+| Front camera (calibration P2) | 721.5 px focal length, 1242 x 375 image: **81.6 degrees horizontal, 29.2 degrees vertical** |
+| Camera height above ground | median 1.71 m (cars' bottom centre in the camera frame; the 5th to 95th percentile spread, 1.03 to 2.34 m, is terrain slope, not mounting) |
+
+Consequences, fixed now:
+1. **The synthetic scans are cropped to KITTI's camera field**: 81.6 degrees horizontal. Elevations run from -24.8 to
+   +2.0 degrees (the lower edge matches the measured -24.86; the upper edge is the measured 99th percentile rounded
+   down, so the few high returns KITTI has above the horizon are not copied). A 106 x 74 degree frame is far wider than
+   this, so every synthetic frame is a crop and a scan from a wide frame has its sky and upper facades removed, which
+   matches what KITTI keeps.
+2. **Sensor height 1.71 m** for the synthetic ego camera (the measured median), not the generator's 1.25 to 2.0 m range.
+3. **Range limit 80 m** (the measured maximum of KITTI returns in the camera field).
+4. The azimuth step was **not** measured cleanly (the one-band estimate mixed channels and gave a median 0.18 degree,
+   twice the published ~0.09); it stays a **choice** at 0.1 degree, and the points-per-scan comparison in section 5 is
+   the check that the density is right: the synthetic scan should have about 27,000 points in the sector.
