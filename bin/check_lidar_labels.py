@@ -26,6 +26,7 @@ from PIL import Image
 from pycocotools import mask as mask_utils
 
 from src.export.box3d_formats import projection_matrix
+from src.export.kitti_lidar import points_in_box
 from src.orchestration.live_render import camera_from_image_entry
 from src.sensors.depth_lidar import BeamPattern, sample_scan
 
@@ -34,24 +35,6 @@ MIN_POINTS = 20
 MARGIN_M = 0.1
 PASS_SHARE = 0.95
 PATTERN = BeamPattern(channels=64, azimuth_step_deg=0.1, max_range_m=80.0)
-
-
-def points_in_box(
-    points: npt.NDArray[np.float64], box: Dict[str, Any], margin: float
-) -> npt.NDArray[np.bool_]:
-    """Which label-frame ``points`` lie inside the KITTI-convention ``box`` grown by ``margin``.
-
-    ``box`` holds ``location`` (bottom centre), ``dimensions_hwl`` and ``rotation_y``; the length
-    axis is the box's x before rotation about the down axis and the width axis its z.
-    """
-    height, width, length = (float(v) for v in box["dimensions_hwl"])
-    centre = np.array(box["location"], dtype=np.float64) - np.array([0.0, height / 2.0, 0.0])
-    ry = float(box["rotation_y"])
-    cos, sin = np.cos(ry), np.sin(ry)
-    rotation = np.array([[cos, 0.0, sin], [0.0, 1.0, 0.0], [-sin, 0.0, cos]])
-    local = (points - centre) @ rotation  # rows: R^T (p - c)
-    half = np.array([length / 2.0, height / 2.0, width / 2.0]) + margin
-    return np.asarray((np.abs(local) <= half).all(axis=1))
 
 
 def _decode(annotation: Dict[str, Any]) -> npt.NDArray[np.bool_]:
