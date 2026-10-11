@@ -77,6 +77,9 @@ sed "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/" cfgs/dataset_configs/kitti_d
 sed -e "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/"     -e "s#cfgs/dataset_configs/kitti_dataset.yaml#cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml#"     cfgs/kitti_models/pointpillar.yaml > "cfgs/kitti_models/pointpillar_${LOCAL}.yaml"
 grep -q "USE_ROAD_PLANE: True" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"   && { echo "ERROR: road plane still enabled in the local config" >&2; exit 1; }
 trap 'rm -rf "$WORK" "train_${NAME}.py" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"' EXIT
+export PYTHONFAULTHANDLER=1   # a segmentation fault then prints the Python stack that led to it
+# OpenPCDet resumes from any checkpoint already in its output folder: start every job clean.
+rm -rf "output/kitti_models/pointpillar_${LOCAL}/${NAME}"
 echo "=== $NAME: training PointPillars (arm $ARM, seed $SEED, $EPOCHS epochs, $(wc -l < "$WORK/select/ImageSets/train.txt") frames) ==="
 python "train_${NAME}.py" --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" \
   --fix_random_seed --ckpt_save_interval 1 --max_ckpt_save_num "$SELECT_LAST" --workers 4 \
