@@ -21,6 +21,7 @@ from src.evaluation.class_maps import PROFILES
 from src.evaluation.detections import CLASS_SPACES
 from src.evaluation.inference import run_detector
 from src.evaluation.loaders import EvalSet, load_bdd100k, load_cityscapes
+from src.evaluation.match_table import build_match_table, save_table
 from src.evaluation.scoring import ScoreReport, format_report, score
 
 
@@ -89,11 +90,20 @@ def main() -> None:
     parser.add_argument("--device", default="0")
     parser.add_argument("--conditions", nargs="+", default=None, help="e.g. timeofday scene")
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--save-matches",
+        type=Path,
+        default=None,
+        help="also write the per-detection match table (.npz) that a bootstrap over images needs",
+    )
     args = parser.parse_args()
 
     eval_set = _load(args)
     detections = _detect(eval_set, args)
     evaluated = {d["image_id"] for d in detections}
+    if args.save_matches is not None:
+        args.save_matches.parent.mkdir(parents=True, exist_ok=True)
+        save_table(args.save_matches, build_match_table(eval_set.coco, detections))
     if args.max_images is not None:
         eval_set.coco["images"] = eval_set.coco["images"][: args.max_images]
         kept = {image["id"] for image in eval_set.coco["images"]}
