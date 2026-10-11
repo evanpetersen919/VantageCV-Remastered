@@ -1,0 +1,35 @@
+{
+ "frames": 1199,
+ "first_id": "100000",
+ "points_per_scan_mean": 28632.099249374478,
+ "points_in_kitti_image_mean": 16104.535446205171,
+ "labels_per_type": {
+  "Car": 11655,
+  "Pedestrian": 8530,
+  "Truck": 640,
+  "Cyclist": 461,
+  "Misc": 180
+ },
+ "car_points_by_range_m": {
+  "0-10": {
+   "cars": 959,
+   "median_points": 2697.0
+  },
+  "10-20": {
+   "cars": 1294,
+   "median_points": 780.0
+  },
+  "20-30": {
+   "cars": 867,
+   "median_points": 266.0
+  },
+  "30-40": {
+   "cars": 609,
+   "median_points": 115.0
+  },
+  "40-80": {
+   "cars": 1085,
+   "median_points": 42.0
+  }
+ }
+}
