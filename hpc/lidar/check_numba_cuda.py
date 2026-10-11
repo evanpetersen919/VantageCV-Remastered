@@ -15,6 +15,16 @@ print("torch", torch.__version__, "cuda", torch.version.cuda, "available", torch
 if torch.cuda.is_available():
     print("device", torch.cuda.get_device_name(0), torch.cuda.get_device_capability(0))
 
+
+def _loaded(name: str) -> list:  # type: ignore[type-arg]
+    """Paths of libraries whose name contains ``name`` that this process has mapped."""
+    with open("/proc/self/maps", encoding="utf-8") as maps:
+        return sorted({line.split()[-1] for line in maps if name in line and ".so" in line})
+
+
+torch.zeros(1).cuda()  # create torch's CUDA context first, as the evaluation does
+print("libcuda mapped by torch:", _loaded("libcuda"))
+
 import numba  # noqa: E402  pylint: disable=wrong-import-position
 from numba import cuda  # noqa: E402  pylint: disable=wrong-import-position
 
