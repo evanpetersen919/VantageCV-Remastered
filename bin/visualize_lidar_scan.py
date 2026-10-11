@@ -21,82 +21,26 @@ labelled boxes as wireframes; ``--orbit N`` also writes a GIF that sways the vie
 """
 
 import argparse
-import json
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402  pylint: disable=wrong-import-position
 import numpy as np  # noqa: E402  pylint: disable=wrong-import-position
-import numpy.typing as npt  # noqa: E402  pylint: disable=wrong-import-position
 from matplotlib.gridspec import GridSpec  # noqa: E402  pylint: disable=wrong-import-position
 from PIL import Image  # noqa: E402  pylint: disable=wrong-import-position
 
-from src.export.box3d_formats import (  # noqa: E402  pylint: disable=wrong-import-position
-    projection_matrix,
-)
 from src.export.kitti_lidar import box_corners  # noqa: E402  pylint: disable=wrong-import-position
-from src.ground_truth.semantic_classes import (  # noqa: E402  pylint: disable=wrong-import-position
-    PALETTE,
+from src.sensors.lidar_view import Frame  # noqa: E402  pylint: disable=wrong-import-position
+from src.sensors.lidar_view import (  # noqa: E402  pylint: disable=wrong-import-position
+    BEV_AHEAD_M,
+    BEV_SIDE_M,
+    BOX_COLOURS,
+    labelled_boxes,
+    load_frame,
 )
-from src.orchestration.live_render import (  # noqa: E402  pylint: disable=wrong-import-position
-    camera_from_image_entry,
-)
-from src.sensors.depth_lidar import (  # noqa: E402  pylint: disable=wrong-import-position
-    KITTI_PATTERN,
-    BeamPattern,
-    sample_scan,
-)
-
-FULL_PATTERN = BeamPattern(channels=64, azimuth_step_deg=0.1, max_range_m=80.0)
-BOX_COLOURS = {3: "tab:red", 8: "tab:orange", 6: "tab:brown", 1: "tab:cyan", 10: "tab:green"}
-BEV_AHEAD_M, BEV_SIDE_M = 60.0, 30.0
-
-
-def _class_colours(classes: npt.NDArray[np.uint8]) -> npt.NDArray[np.float64]:
-    table = np.zeros((256, 3), dtype=np.float64)
-    for class_id, rgb in PALETTE.items():
-        table[class_id] = np.array(rgb) / 255.0
-    return np.asarray(table[classes])
-
-
-def _boxes(annotations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    return [
-        a for a in annotations if a.get("box3d") is not None and a["category_id"] in BOX_COLOURS
-    ]
-
-
-@dataclass
-class Frame:
-    """One frame's scan and what it is drawn with."""
-
-    image: Dict[str, Any]
-    annotations: List[Dict[str, Any]]
-    label: npt.NDArray[np.float64]  # points in the level camera frame: x right, y down, z forward
-    colours: npt.NDArray[np.float64]
-    pixel_x: npt.NDArray[np.int32]
-    pixel_y: npt.NDArray[np.int32]
-
-
-def load_frame(dataset: Path, frame: int, pattern_name: str) -> Frame:
-    """Sample the scan of the ``frame``-th frame that has a depth map and colour it by class."""
-    data = json.loads((dataset / "annotations.json").read_text(encoding="utf-8"))
-    image = [i for i in data["images"] if "depth_file" in i][frame]
-    annotations = [a for a in data["annotations"] if a["image_id"] == image["id"]]
-    depth = np.asarray(Image.open(dataset / image["depth_file"])).astype(np.float64)
-    depth = (depth / float(image["depth_scale"])).astype(np.float32)
-    classes = np.asarray(Image.open(dataset / image["semantic_file"]))
-    camera = camera_from_image_entry(image)
-    pattern = KITTI_PATTERN if pattern_name == "kitti" else FULL_PATTERN
-    scan = sample_scan(depth, camera.intrinsics.focal_length_x, pattern)
-    intrinsic = camera.intrinsics.get_intrinsic_matrix()
-    back = np.linalg.inv(intrinsic) @ projection_matrix(camera)[:, :3]
-    label = scan.points.astype(np.float64) @ back
-    colours = _class_colours(classes[scan.pixel_y, scan.pixel_x])
-    return Frame(image, annotations, label, colours, scan.pixel_x, scan.pixel_y)
 
 
 def draw(  # pylint: disable=too-many-locals,too-many-statements
@@ -120,7 +64,7 @@ def draw(  # pylint: disable=too-many-locals,too-many-statements
 
     bev.set_facecolor("black")
     bev.scatter(-label[:, 0], label[:, 2], c=colours, s=2.0, linewidths=0)
-    for annotation in _boxes(annotations):
+    for annotation in labelled_boxes(annotations):
         corners = box_corners(annotation["box3d"])[[0, 1, 2, 3, 0]]
         bev.plot(
             -corners[:, 0], corners[:, 2], color=BOX_COLOURS[annotation["category_id"]], lw=1.4
@@ -184,7 +128,7 @@ def _draw_3d(axes: Any, loaded: Frame, elevation: float, azimuth: float) -> None
         linewidths=0,
         depthshade=False,
     )
-    for annotation in _boxes(loaded.annotations):
+    for annotation in labelled_boxes(loaded.annotations):
         corners = box_corners(annotation["box3d"])
         colour = BOX_COLOURS[annotation["category_id"]]
         for first, second in BOX_EDGES:
