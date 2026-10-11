@@ -21,12 +21,11 @@ sweep, Cityscapes.
 
 import argparse
 import json
-import math
 from pathlib import Path
-from statistics import mean, stdev
-from typing import Any, Dict, List, Sequence
+from statistics import mean
+from typing import Any, Dict, List
 
-from scipy import stats
+from src.evaluation.paired_stats import paired_interval
 
 ARMS = ("A", "B", "C", "E")
 SEEDS = (0, 1, 2, 3, 4)
@@ -48,15 +47,6 @@ def load(results: Path, arm: str, seed: int, benchmark: str) -> Dict[str, float]
 def primary(per_class: Dict[str, float]) -> float:
     """M: the mean AP of rider and bike."""
     return mean(per_class[name] for name in PRIMARY)
-
-
-def paired_interval(differences: Sequence[float]) -> Dict[str, float]:
-    """Mean and 95% t-interval of paired differences (n - 1 degrees of freedom)."""
-    n = len(differences)
-    centre = mean(differences)
-    spread = stdev(differences) if n > 1 else float("nan")
-    half = float(stats.t.ppf(0.975, n - 1)) * spread / math.sqrt(n) if n > 1 else float("nan")
-    return {"mean": centre, "low": centre - half, "high": centre + half, "n": n}
 
 
 def verdict(interval: Dict[str, float], guards_hold: bool) -> str:
