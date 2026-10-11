@@ -48,6 +48,11 @@ parsed per-class AP. The seed is patched into a job-local copy of OpenPCDet's `t
 
 ## Known weak points
 
+- **numba CUDA and newer drivers.** numba 0.56 segfaults creating a CUDA context against a 580-series driver
+  (found on this cluster's RTX A5500 nodes). The KITTI evaluation's rotated-IoU step is a numba CUDA kernel, so the
+  jobs set `NUMBA_CUDA_USE_NVIDIA_BINDING=1` and the setup installs `cuda-python==11.8.2`;
+  `hpc/lidar/check_numba_variants.sh` re-runs the comparison on a GPU node if a driver update changes this.
+
 - `Python 3.12` is outside OpenPCDet's tested range; the setup script warns and `PYTHON` should point at 3.8 to 3.10.
 - spconv must match the CUDA toolkit; the script refuses to guess a wheel.
 - The log parser reads OpenPCDet's printed `AP_R40` blocks (`src/evaluation/openpcdet_results.py`); if a newer

@@ -68,6 +68,9 @@ pip install "numpy==$NUMPY_VERSION"   # keep one NumPy that numba and torch 1.13
 pip uninstall -y opencv-python >/dev/null 2>&1 || true
 pip install "opencv-python-headless==4.8.1.78"   # no GUI libraries on compute nodes
 pip install scipy pycocotools
+# numba 0.56 needs NVIDIA's binding to create a CUDA context on newer drivers (see check_numba_variants.py);
+# jobs set NUMBA_CUDA_USE_NVIDIA_BINDING=1
+pip install "cuda-python==11.8.2"
 rm -rf "$SRC/build"   # a half-built tree from an earlier attempt
 export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-6.0;6.1;7.0;7.5;8.0;8.6+PTX}"
 echo "compiling for CUDA architectures: $TORCH_CUDA_ARCH_LIST"

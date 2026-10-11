@@ -10,6 +10,7 @@ for m in $MODULES ${LIDAR_MODULES:-}; do module load "$m"; done
 source "$HPC_ROOT/venv-lidar/bin/activate"
 export PYTHONPATH="$HPC_ROOT/repo:${PYTHONPATH:-}"
 export PYTHONFAULTHANDLER=1
+export NUMBA_CUDA_USE_NVIDIA_BINDING=1
 echo "LD_LIBRARY_PATH entries containing 'stubs':"
 echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -i stubs || echo "  (none)"
 if [ "${KEEP_STUBS:-0}" != "1" ]; then

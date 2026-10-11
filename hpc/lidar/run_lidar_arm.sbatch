@@ -78,19 +78,10 @@ sed -e "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/"     -e "s#cfgs/dataset_co
 grep -q "USE_ROAD_PLANE: True" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"   && { echo "ERROR: road plane still enabled in the local config" >&2; exit 1; }
 trap 'rm -rf "$WORK" "train_${NAME}.py" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"' EXIT
 export PYTHONFAULTHANDLER=1   # a segmentation fault then prints the Python stack that led to it
-# numba finds libcuda through the system cache, which on this cluster points at a different directory than
-# the driver library torch loads, and creating a CUDA context through it segfaults. Name the one torch uses.
-NUMBA_CUDA_DRIVER="$(python - <<'PY'
-import torch
-torch.zeros(1).cuda()
-for line in open("/proc/self/maps"):
-    if "libcuda.so" in line and "cudart" not in line:
-        print(line.split()[-1])
-        break
-PY
-)"
-export NUMBA_CUDA_DRIVER
-echo "numba will use the driver library: ${NUMBA_CUDA_DRIVER:-<not found>}"
+# numba 0.56 built-in CUDA driver layer segfaults creating a context against this cluster's 580-series driver
+# (hpc/lidar/check_numba_variants.py: only the NVIDIA cuda-python binding works). The KITTI evaluation's
+# rotated-IoU kernel is a numba CUDA kernel, so every job uses the binding.
+export NUMBA_CUDA_USE_NVIDIA_BINDING=1
 # OpenPCDet resumes from any checkpoint already in its output folder: start every job clean.
 rm -rf "output/kitti_models/pointpillar_${LOCAL}/${NAME}"
 echo "=== $NAME: training PointPillars (arm $ARM, seed $SEED, $EPOCHS epochs, $(wc -l < "$WORK/select/ImageSets/train.txt") frames) ==="
