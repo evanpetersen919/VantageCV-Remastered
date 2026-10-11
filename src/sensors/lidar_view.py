@@ -64,9 +64,10 @@ class Frame:
     colours: npt.NDArray[np.float64]
     pixel_x: npt.NDArray[np.int32]
     pixel_y: npt.NDArray[np.int32]
+    class_ids: npt.NDArray[np.uint8]  # the Cityscapes class id of each point's pixel
 
 
-def load_frame(
+def load_frame(  # pylint: disable=too-many-locals
     dataset: Path, frame: int, pattern_name: str, pattern: Optional[BeamPattern] = None
 ) -> Frame:
     """Sample the scan of the ``frame``-th frame that has a depth map and colour it by class."""
@@ -83,4 +84,5 @@ def load_frame(
     back = np.linalg.inv(intrinsic) @ projection_matrix(camera)[:, :3]
     label = scan.points.astype(np.float64) @ back
     colours = class_colours(classes[scan.pixel_y, scan.pixel_x])
-    return Frame(image, annotations, label, colours, scan.pixel_x, scan.pixel_y)
+    ids = classes[scan.pixel_y, scan.pixel_x]
+    return Frame(image, annotations, label, colours, scan.pixel_x, scan.pixel_y, ids)

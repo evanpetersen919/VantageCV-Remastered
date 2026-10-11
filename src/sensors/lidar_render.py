@@ -77,10 +77,12 @@ def splat(  # pylint: disable=too-many-locals,too-many-arguments
     return buffer
 
 
-def tone_map(buffer: npt.NDArray[np.float32], glow_sigma: float = 4.0) -> npt.NDArray[np.float32]:
+def tone_map(
+    buffer: npt.NDArray[np.float32], glow_sigma: float = 4.0, glow_gain: float = 1.6
+) -> npt.NDArray[np.float32]:
     """Soft tone-map with a glow, so dense areas do not clip."""
     glow = gaussian_filter(buffer, sigma=(glow_sigma, glow_sigma, 0))
-    return np.asarray(1.0 - np.exp(-(buffer * 0.8 + glow * 1.6)), dtype=np.float32)
+    return np.asarray(1.0 - np.exp(-(buffer * 0.8 + glow * glow_gain)), dtype=np.float32)
 
 
 def draw_boxes(  # pylint: disable=too-many-arguments,too-many-locals
