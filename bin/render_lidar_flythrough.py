@@ -5,27 +5,28 @@
 
 The scan is sampled from the frame's depth map (``src/sensors/depth_lidar.py``) over the whole
 camera frame with ``--channels`` beams (default 192, denser than the 64 of the study sensor so
-the picture is smooth; the study's scans are unaffected) and drawn by a small point renderer: a
-pinhole camera moves along a smooth path through the scene (behind the sensor, down the street
-between the cars, past them looking back, then up and over for a high side view), points are
-splatted with distance fade and a soft glow, and the labelled 3D boxes are wireframes. Points are
-coloured by Cityscapes class. Written with Pillow only (no video codec is installed), so a GIF.
+the picture is smooth; the study's scans are unaffected) and drawn by a small point renderer
+(``src/sensors/lidar_render.py``): a pinhole camera moves along a smooth path through the scene
+(behind the sensor, down the street between the cars, past them looking back, then up and over for
+a high side view), points are splatted with distance fade and a soft glow, and the labelled 3D
+boxes are wireframes. Points are coloured by Cityscapes class. Written with Pillow only (no video
+codec is installed), so a GIF.
 """
 
 import argparse
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import List, Tuple
 
 import numpy as np
 import numpy.typing as npt
 from matplotlib.colors import to_rgb
-from PIL import Image, ImageDraw
+from PIL import Image
 from scipy.interpolate import CubicSpline
-from scipy.ndimage import gaussian_filter
 
 from src.export.kitti_lidar import box_corners
 from src.sensors.depth_lidar import BeamPattern
-from src.sensors.lidar_view import BOX_COLOURS, BOX_EDGES, labelled_boxes, load_frame
+from src.sensors.lidar_render import draw_boxes, splat, tone_map
+from src.sensors.lidar_view import BOX_COLOURS, labelled_boxes, load_frame
 
 # camera keyframes (scene axes: x right, y up, z forward; the sensor is at the origin, 1.71 m up)
 KEY_POSITIONS = [(-4.0, 3.2, -7.0), (-1.2, 1.6, 6.0), (4.5, 3.0, 24.0), (10.0, 9.0, 0.0)]
@@ -42,76 +43,6 @@ def camera_path(frames: int) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.fl
     position = CubicSpline(knots, np.array(KEY_POSITIONS), bc_type="natural")(steps)
     target = CubicSpline(knots, np.array(KEY_TARGETS), bc_type="natural")(steps)
     return np.asarray(position), np.asarray(target)
-
-
-def _basis(
-    position: npt.NDArray[np.float64], target: npt.NDArray[np.float64]
-) -> npt.NDArray[np.float64]:
-    forward = target - position
-    forward /= np.linalg.norm(forward)
-    right = np.cross(forward, np.array([0.0, 1.0, 0.0]))
-    right /= np.linalg.norm(right)
-    up = np.cross(right, forward)
-    return np.stack([right, up, forward])
-
-
-def project(
-    points: npt.NDArray[np.float64],
-    position: npt.NDArray[np.float64],
-    target: npt.NDArray[np.float64],
-    size: Tuple[int, int],
-) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """Pixel coordinates (x, y) and camera depth of ``points`` seen from the camera."""
-    width, height = size
-    focal = (width / 2.0) / np.tan(np.radians(HFOV_DEG) / 2.0)
-    cam = (points - position) @ _basis(position, target).T
-    depth = cam[:, 2]
-    safe = np.maximum(depth, 1e-3)
-    x = width / 2.0 + focal * cam[:, 0] / safe
-    y = height / 2.0 - focal * cam[:, 1] / safe
-    return np.stack([x, y], axis=1), depth
-
-
-def render_frame(  # pylint: disable=too-many-locals,too-many-arguments
-    points: npt.NDArray[np.float64],
-    colours: npt.NDArray[np.float64],
-    boxes: List[Tuple[npt.NDArray[np.float64], Any]],
-    position: npt.NDArray[np.float64],
-    target: npt.NDArray[np.float64],
-    size: Tuple[int, int],
-) -> Image.Image:
-    """One frame: splatted points with fade and glow, then box wireframes."""
-    width, height = size
-    pixels, depth = project(points, position, target, size)
-    visible = (depth > 0.8) & (pixels[:, 0] > 1) & (pixels[:, 0] < width - 2)
-    visible &= (pixels[:, 1] > 1) & (pixels[:, 1] < height - 2)
-    px = pixels[visible]
-    z = depth[visible]
-    fade = (0.30 + 0.70 * np.exp(-z / 40.0))[:, None]
-    tint = np.clip(colours[visible] * 1.25 + 0.08, 0.0, 1.0) * fade
-    buffer = np.zeros((height, width, 3), dtype=np.float32)
-    x0 = np.rint(px[:, 0]).astype(np.int64)
-    y0 = np.rint(px[:, 1]).astype(np.int64)
-    near = z < 22.0
-    for dx in (-1, 0, 1):
-        for dy in (-1, 0, 1):
-            weight = 1.0 if (dx == 0 and dy == 0) else 0.55
-            use = near | ((dx == 0) & (dy == 0))
-            xs = np.clip(x0[use] + dx, 0, width - 1)
-            ys = np.clip(y0[use] + dy, 0, height - 1)
-            np.add.at(buffer, (ys, xs), (tint[use] * weight).astype(np.float32))
-    glow = gaussian_filter(buffer, sigma=(5.0, 5.0, 0))
-    image = 1.0 - np.exp(-(buffer * 0.8 + glow * 1.6))  # soft tone-map: dense areas do not clip
-    picture = Image.fromarray((image * 255).astype(np.uint8))
-    draw = ImageDraw.Draw(picture)
-    for corners, category in boxes:
-        edge_px, edge_z = project(corners, position, target, size)
-        if (edge_z < 3.0).any():
-            continue
-        colour = BOX_RGB[category]
-        for first, second in BOX_EDGES:
-            draw.line([tuple(edge_px[first]), tuple(edge_px[second])], fill=colour, width=2)
-    return picture
 
 
 def main() -> None:  # pylint: disable=too-many-locals
@@ -139,20 +70,21 @@ def main() -> None:  # pylint: disable=too-many-locals
         boxes.append((scene, annotation["category_id"]))
     positions, targets = camera_path(args.frames)
     size = (int(args.size[0]), int(args.size[1]))
+
+    def render(index: int) -> Image.Image:
+        picture = tone_map(
+            splat(points, loaded.colours, positions[index], targets[index], size, HFOV_DEG)
+        )
+        image = Image.fromarray((picture * 255).astype(np.uint8))
+        return draw_boxes(image, boxes, BOX_RGB, positions[index], targets[index], HFOV_DEG)
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     if args.still is not None:
-        index = args.still
-        picture = render_frame(
-            points, loaded.colours, boxes, positions[index], targets[index], size
-        )
         still = args.out.with_suffix(".png")
-        picture.save(still)
+        render(args.still).save(still)
         print(still)
         return
-    pictures = [
-        render_frame(points, loaded.colours, boxes, positions[k], targets[k], size)
-        for k in range(args.frames)
-    ]
+    pictures: List[Image.Image] = [render(k) for k in range(args.frames)]
     pictures[0].save(
         args.out, save_all=True, append_images=pictures[1:], duration=55, loop=0, optimize=True
     )
