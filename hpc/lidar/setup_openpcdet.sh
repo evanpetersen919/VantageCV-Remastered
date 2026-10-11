@@ -6,6 +6,7 @@
 # stops with a clear message at each check and never guesses a package name. Set these before running:
 #   SPCONV_PACKAGE   the spconv wheel that matches the cluster's CUDA, e.g. spconv-cu118 (see the spconv README)
 #   PYTHON           an interpreter OpenPCDet supports (3.8 to 3.10 is the safe range; default python3)
+#   LIDAR_UNLOAD     modules to unload first when they conflict (e.g. anaconda3/2023.09_pytorch)
 #   LIDAR_MODULES    modules for this environment only, set in hpc/config.local.env (e.g. "python39 cuda11.7/toolkit/11.7.1"),
 #                    so the camera studies' environment is not touched
 #   LIDAR_TORCH_INDEX  pip index for the CUDA build of PyTorch (default: TORCH_INDEX from hpc/config.env)
@@ -16,6 +17,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 source "$HERE/config.env"
 [ -f "$HERE/config.local.env" ] && source "$HERE/config.local.env"
+for m in ${LIDAR_UNLOAD:-}; do module unload "$m" 2>/dev/null || true; done   # e.g. anaconda3/2023.09_pytorch
 for m in $MODULES ${LIDAR_MODULES:-}; do module load "$m"; done
 
 : "${SPCONV_PACKAGE:?set SPCONV_PACKAGE to the spconv wheel for the CUDA version here, e.g. spconv-cu118}"

@@ -20,6 +20,8 @@ wheel, CUDA module, Python version) before anything trains.
    ```
    echo 'export LIDAR_MODULES="python39 cuda11.7/toolkit/11.7.1"' >> hpc/config.local.env
    echo 'export LIDAR_TORCH_INDEX="https://download.pytorch.org/whl/cu117"' >> hpc/config.local.env
+   # if python39 reports a conflict (an Anaconda module loaded in the login shell), unload that module first:
+   echo 'export LIDAR_UNLOAD="anaconda3/2023.09_pytorch"' >> hpc/config.local.env
    cd .../VantageCV/repo && git pull
    TORCH_VERSION=1.13.1 TORCHVISION_VERSION=0.14.1 SPCONV_PACKAGE=spconv-cu117 PYTHON=python3 \
      bash hpc/lidar/setup_openpcdet.sh
