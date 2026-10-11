@@ -25,6 +25,15 @@ def _loaded(name: str) -> list:  # type: ignore[type-arg]
 torch.zeros(1).cuda()  # create torch's CUDA context first, as the evaluation does
 print("libcuda mapped by torch:", _loaded("libcuda"))
 
+# numba would otherwise find libcuda through the system cache, which here points at a different
+# directory ("current") than the driver library torch loaded. Point numba at the one torch uses.
+import os  # noqa: E402  pylint: disable=wrong-import-position
+
+_driver = [p for p in _loaded("libcuda") if "libcuda.so" in p and "cudart" not in p]
+if _driver and "NUMBA_CUDA_DRIVER" not in os.environ and os.environ.get("NO_DRIVER_FIX") != "1":
+    os.environ["NUMBA_CUDA_DRIVER"] = _driver[0]
+print("NUMBA_CUDA_DRIVER =", os.environ.get("NUMBA_CUDA_DRIVER"))
+
 import numba  # noqa: E402  pylint: disable=wrong-import-position
 from numba import cuda  # noqa: E402  pylint: disable=wrong-import-position
 
