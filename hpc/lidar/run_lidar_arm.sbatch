@@ -45,7 +45,10 @@ import sys
 from pathlib import Path
 import yaml
 from easydict import EasyDict
+import pcdet.datasets.kitti.kitti_dataset as kitti_dataset
 from pcdet.datasets.kitti.kitti_dataset import create_kitti_infos
+# this commit imports Path only under its own __main__, but create_groundtruth_database uses it
+kitti_dataset.Path = Path
 root = Path(sys.argv[1])
 cfg = EasyDict(yaml.safe_load(open("tools/cfgs/dataset_configs/kitti_dataset.yaml")))
 cfg.DATA_PATH = str(root)
