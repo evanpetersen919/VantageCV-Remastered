@@ -83,13 +83,13 @@ export PYTHONFAULTHANDLER=1   # a segmentation fault then prints the Python stac
 # rotated-IoU kernel is a numba CUDA kernel, so every job uses the binding.
 export NUMBA_CUDA_USE_NVIDIA_BINDING=1
 # OpenPCDet resumes from any checkpoint already in its output folder: start every job clean.
-rm -rf "output/kitti_models/pointpillar_${LOCAL}/${NAME}"
+rm -rf "$SRC/output/kitti_models/pointpillar_${LOCAL}/${NAME}"
 echo "=== $NAME: training PointPillars (arm $ARM, seed $SEED, $EPOCHS epochs, $(wc -l < "$WORK/select/ImageSets/train.txt") frames) ==="
 python "train_${NAME}.py" --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" \
   --fix_random_seed --ckpt_save_interval 1 --max_ckpt_save_num "$SELECT_LAST" --workers 4 \
   --set OPTIMIZATION.NUM_EPOCHS "$EPOCHS" DATA_CONFIG.DATA_PATH "$WORK/select" $EXTRA_SETS
 
-OUT="output/kitti_models/pointpillar_${LOCAL}/$NAME"
+OUT="$SRC/output/kitti_models/pointpillar_${LOCAL}/$NAME"   # OpenPCDet writes under its repo root, not tools/
 echo "=== $NAME: choosing the checkpoint on the held-out slice ==="
 BEST=""; BEST_M=-1
 for EP in $(seq $((EPOCHS - SELECT_LAST + 1)) "$EPOCHS"); do
