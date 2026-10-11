@@ -11,7 +11,8 @@
 #                    so the camera studies' environment is not touched
 #   LIDAR_TORCH_INDEX  pip index for the CUDA build of PyTorch (default: TORCH_INDEX from hpc/config.env)
 #   TORCH_VERSION / TORCHVISION_VERSION  pin both (e.g. 1.13.1 and 0.14.1, the range OpenPCDet is used with)
-#   OPENPCDET_REF    git tag or commit to build (default v0.6.0)
+#   OPENPCDET_REF    git tag or commit to build (default v0.5.2, the newest tag)
+#   NUMPY_VERSION    NumPy pin installed right after torch (default 1.23.5)
 #   TORCH_CUDA_ARCH_LIST   GPU architectures to compile for, e.g. "8.0;8.6" (default: let torch detect)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,7 +23,8 @@ for m in $MODULES ${LIDAR_MODULES:-}; do module load "$m"; done
 
 : "${SPCONV_PACKAGE:?set SPCONV_PACKAGE to the spconv wheel for the CUDA version here, e.g. spconv-cu118}"
 PYTHON="${PYTHON:-python3}"
-OPENPCDET_REF="${OPENPCDET_REF:-v0.6.0}"
+OPENPCDET_REF="${OPENPCDET_REF:-v0.5.2}"   # the repository's newest tag (v0.6.0 is a README label, not a tag)
+NUMPY_VERSION="${NUMPY_VERSION:-1.23.5}"   # torch 1.13 is built for NumPy 1.x; PyPI would otherwise pull NumPy 2
 VENV="$HPC_ROOT/venv-lidar"
 SRC="$HPC_ROOT/OpenPCDet"
 
@@ -43,12 +45,17 @@ if [ -n "${TORCH_VERSION:-}" ]; then
 else
   pip install torch torchvision --index-url "$LIDAR_TORCH_INDEX"
 fi
+pip install "numpy==$NUMPY_VERSION"
 python -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cuda, 'available', torch.cuda.is_available())"
 which nvcc >/dev/null 2>&1 || { echo "ERROR: nvcc not found; load a CUDA module (set MODULES in hpc/config.local.env) so the extensions can build" >&2; exit 1; }
 
 [ -d "$SRC" ] || git clone https://github.com/open-mmlab/OpenPCDet.git "$SRC"
 git -C "$SRC" fetch --tags --quiet
-git -C "$SRC" checkout --quiet "$OPENPCDET_REF"
+git -C "$SRC" checkout --quiet "$OPENPCDET_REF" || {
+  echo "ERROR: no such tag or commit: $OPENPCDET_REF. Tags available:" >&2
+  git -C "$SRC" tag | tail -n 10 >&2
+  exit 1
+}
 echo "OpenPCDet at $(git -C "$SRC" rev-parse --short HEAD) ($OPENPCDET_REF)"
 
 pip install "$SPCONV_PACKAGE"
