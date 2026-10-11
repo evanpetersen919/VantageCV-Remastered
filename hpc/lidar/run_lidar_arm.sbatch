@@ -53,10 +53,12 @@ create_kitti_infos(dataset_cfg=cfg, class_names=["Car", "Pedestrian", "Cyclist"]
 PY
 done
 
-# OpenPCDet's train.py fixes its seed at 666 with --fix_random_seed; use a job-local copy with ours.
+# OpenPCDet's train.py fixes its seed at 666 (two places) with --fix_random_seed; use a job-local copy with ours.
 cp tools/train.py "tools/train_${NAME}.py"
-sed -i "s/set_random_seed(666)/set_random_seed(${SEED})/" "tools/train_${NAME}.py"
-grep -q "set_random_seed(${SEED})" "tools/train_${NAME}.py" || { echo "ERROR: seed patch did not apply" >&2; exit 1; }
+sed -i "s/666/${SEED}/g" "tools/train_${NAME}.py"
+if grep -q "666" "tools/train_${NAME}.py" || ! grep -q "random_seed(${SEED}" "tools/train_${NAME}.py"; then
+  echo "ERROR: seed patch did not apply (train.py changed upstream?)" >&2; exit 1
+fi
 trap 'rm -rf "$WORK" "tools/train_${NAME}.py"' EXIT
 
 cd tools

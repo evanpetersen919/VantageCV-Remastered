@@ -11,7 +11,7 @@
 #                    so the camera studies' environment is not touched
 #   LIDAR_TORCH_INDEX  pip index for the CUDA build of PyTorch (default: TORCH_INDEX from hpc/config.env)
 #   TORCH_VERSION / TORCHVISION_VERSION  pin both (e.g. 1.13.1 and 0.14.1, the range OpenPCDet is used with)
-#   OPENPCDET_REF    git tag or commit to build (default v0.5.2, the newest tag)
+#   OPENPCDET_REF    git tag or commit to build (default 31f6758af3, see below)
 #   NUMPY_VERSION    NumPy pin installed right after torch (default 1.23.5)
 #   TORCH_CUDA_ARCH_LIST   GPU architectures to compile for. The login node has no GPU, so torch cannot detect
 #                    one and the build fails without a list; the default covers P100/V100/T4/A100/A10/A40/3090,
@@ -25,7 +25,9 @@ for m in $MODULES ${LIDAR_MODULES:-}; do module load "$m"; done
 
 : "${SPCONV_PACKAGE:?set SPCONV_PACKAGE to the spconv wheel for the CUDA version here, e.g. spconv-cu118}"
 PYTHON="${PYTHON:-python3}"
-OPENPCDET_REF="${OPENPCDET_REF:-v0.5.2}"   # the repository's newest tag (v0.6.0 is a README label, not a tag)
+# 31f6758af3 (2023-02-01): after the torch>=1.11 fix (v0.5.2 includes THC/THC.h, which torch 1.11+ removed) and
+# before the Argoverse dataset (a later master imports av2 unconditionally). Roughly the v0.6.0 release.
+OPENPCDET_REF="${OPENPCDET_REF:-31f6758af3}"
 NUMPY_VERSION="${NUMPY_VERSION:-1.23.5}"   # torch 1.13 is built for NumPy 1.x; PyPI would otherwise pull NumPy 2
 VENV="$HPC_ROOT/venv-lidar"
 SRC="$HPC_ROOT/OpenPCDet"
@@ -62,8 +64,11 @@ echo "OpenPCDet at $(git -C "$SRC" rev-parse --short HEAD) ($OPENPCDET_REF)"
 
 pip install "$SPCONV_PACKAGE"
 pip install -r "$SRC/requirements.txt"
-pip install "numpy==$NUMPY_VERSION"   # the requirements pin an older NumPy; keep one that numba accepts
+pip install "numpy==$NUMPY_VERSION"   # keep one NumPy that numba and torch 1.13 accept
+pip uninstall -y opencv-python >/dev/null 2>&1 || true
+pip install "opencv-python-headless==4.8.1.78"   # no GUI libraries on compute nodes
 pip install scipy pycocotools
+rm -rf "$SRC/build"   # a half-built tree from an earlier attempt
 export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-6.0;6.1;7.0;7.5;8.0;8.6+PTX}"
 echo "compiling for CUDA architectures: $TORCH_CUDA_ARCH_LIST"
 mkdir -p "$HPC_ROOT/logs"

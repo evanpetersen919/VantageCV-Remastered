@@ -1,7 +1,7 @@
 # LiDAR study on the cluster
 
 Registered in `docs/lidar/preregistration.md` (section 4 and amendments 1 to 5). Arms A (real base), B (+1,000 real
-extras), E (+1,000 synthetic) at seeds 0 to 4, PointPillars from OpenPCDet (tag v0.5.2), scored on KITTI's validation frames.
+extras), E (+1,000 synthetic) at seeds 0 to 4, PointPillars from OpenPCDet (commit 31f6758af3, Feb 2023), scored on KITTI's validation frames.
 
 **Status: written but not yet run on a cluster.** The first run is the test; expect to fix the environment (spconv
 wheel, CUDA module, Python version) before anything trains.
