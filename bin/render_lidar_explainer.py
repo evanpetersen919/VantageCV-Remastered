@@ -382,12 +382,18 @@ def main() -> None:
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--frame", type=int, default=716)
     parser.add_argument("--out", type=Path, default=Path("docs/images/lidar_how_it_works.gif"))
-    parser.add_argument("--duration-ms", type=int, default=70)
+    parser.add_argument("--duration-ms", type=int, default=80)
+    parser.add_argument(
+        "--fps-scale",
+        type=float,
+        default=1.6,
+        help="frames per scene relative to the base length: above 1 is slower and smoother",
+    )
     parser.add_argument("--colours", type=int, default=256)
     parser.add_argument("--webp-quality", type=int, default=82)
     parser.add_argument("--still", type=int, default=None, help="write only this frame as PNG")
     args = parser.parse_args()
-    frames = build(args.dataset, args.frame)
+    frames = build(args.dataset, args.frame, args.fps_scale)
     if args.still is not None:
         still: Optional[Path] = args.out.with_suffix(".png")
         assert still is not None
