@@ -108,3 +108,28 @@ def test_empty_frame_gets_one_dont_care_line() -> None:
         "Car 0.00 0 0.00 1 2 3 4 1 1 1 0 0 10 0"
     ]
     assert len(kl.DONT_CARE_LINE.split()) == 15
+
+
+def test_conventions_cap_van_and_pedestrian_footprint() -> None:
+    """Range cap drops far labels, long Cars become Van, pedestrians take the KITTI footprint."""
+    conventions = kl.Conventions(
+        range_cap_m={"Car": 30.0, "Pedestrian": 25.0},
+        van_length_m=4.53,
+        pedestrian_footprint_m=(0.63, 0.82),
+    )
+    short_car = _annotation(3, _box(1.0, 20.0, hwl=(1.5, 1.7, 4.0)))
+    long_car = _annotation(3, _box(1.0, 20.0, hwl=(1.8, 1.9, 5.0)))
+    far_car = _annotation(3, _box(1.0, 40.0, hwl=(1.5, 1.7, 4.0)))
+    pedestrian = _annotation(1, _box(0.5, 15.0, hwl=(1.75, 0.5, 0.7)))
+    far_pedestrian = _annotation(1, _box(0.5, 28.0, hwl=(1.75, 0.5, 0.7)))
+    annotations = [short_car, long_car, far_car, pedestrian, far_pedestrian]
+    lines = kl.frame_labels(annotations, conventions)
+    assert sorted(line.split()[0] for line in lines) == ["Car", "Pedestrian", "Van"]
+    ped = next(line for line in lines if line.startswith("Pedestrian")).split()
+    assert [float(v) for v in ped[8:11]] == [1.75, 0.63, 0.82]
+
+
+def test_no_conventions_changes_nothing() -> None:
+    """The default call is the original behaviour: the same lines as with an empty Conventions."""
+    annotations = [_annotation(3, _box(1.0, 60.0, hwl=(1.8, 1.9, 5.0)))]
+    assert kl.frame_labels(annotations) == kl.frame_labels(annotations, kl.Conventions())

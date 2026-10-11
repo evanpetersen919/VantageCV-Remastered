@@ -15,6 +15,7 @@ own box; a bike without a rider is not labelled (parked bikes are not KITTI obje
 """
 
 import math
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
@@ -165,12 +166,48 @@ def with_dont_care(lines: Sequence[str]) -> List[str]:
     return list(lines) if lines else [DONT_CARE_LINE]
 
 
+@dataclass(frozen=True)
+class Conventions:
+    """KITTI annotation conventions applied to the synthetic labels (follow-up study, T1 to T3).
+
+    ``range_cap_m`` maps a KITTI type to the farthest distance it is labelled at (``None`` keeps
+    all); ``van_length_m`` calls a ``Car`` longer than that a ``Van`` (a class the Car
+    evaluation ignores); ``pedestrian_footprint_m`` is the mean pedestrian (width, length).
+    The constants come from ``configs/kitti_derived_constants.json`` (training split only).
+    """
+
+    range_cap_m: Optional[Dict[str, float]] = None
+    van_length_m: Optional[float] = None
+    pedestrian_footprint_m: Optional[Tuple[float, float]] = None
+
+
+def _apply_conventions(
+    kitti_type: str, box: Dict[str, Any], conventions: Optional[Conventions]
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """(type, box) after the conventions, or ``None`` if the label is dropped."""
+    if conventions is None:
+        return kitti_type, box
+    height, width, length = (float(v) for v in box["dimensions_hwl"])
+    long_car = conventions.van_length_m is not None and length > conventions.van_length_m
+    if kitti_type == "Car" and long_car:
+        kitti_type = "Van"
+    if conventions.pedestrian_footprint_m is not None and kitti_type == "Pedestrian":
+        width, length = conventions.pedestrian_footprint_m
+        box = {**box, "dimensions_hwl": [height, width, length]}
+    caps = conventions.range_cap_m
+    if caps is not None and kitti_type in caps:
+        if math.hypot(box["location"][0], box["location"][2]) > caps[kitti_type]:
+            return None
+    return kitti_type, box
+
+
 def frame_labels(  # pylint: disable=too-many-locals
-    annotations: Sequence[Dict[str, Any]]
+    annotations: Sequence[Dict[str, Any]], conventions: Optional[Conventions] = None
 ) -> List[str]:
     """The ``label_2`` lines of one frame from its annotations (riders profile ids).
 
     Each annotation needs ``box3d``, ``category_id``, ``visibility_fraction`` and ``bbox``.
+    ``conventions`` applies the range cap, the ``Van`` rule and the pedestrian footprint.
     """
     lines: List[str] = []
     items = [a for a in annotations if a.get("box3d") is not None]
@@ -206,6 +243,10 @@ def frame_labels(  # pylint: disable=too-many-locals
                 )
             )
     for kitti_type, box, visibility in entries:
+        converted = _apply_conventions(kitti_type, box, conventions)
+        if converted is None:
+            continue
+        kitti_type, box = converted
         projected = project_box(box)
         if projected is None:
             continue
