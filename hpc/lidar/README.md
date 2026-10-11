@@ -28,7 +28,7 @@ wheel, CUDA module, Python version) before anything trains.
    ```
 3. **Smoke test** (one epoch of arm A, seed 0), and read its log before anything else:
    ```
-   EPOCHS=1 SELECT_LAST=1 bash hpc/lidar/submit_lidar_study.sh smoke A 0
+   EPOCHS=1 SELECT_LAST=1 SCORE_THRESH=0.0 bash hpc/lidar/submit_lidar_study.sh smoke A 0
    ```
    A good run ends with `ALL DONE` and writes `results/lidar_A_s0_kitti_val.json` with a Car, Pedestrian and
    Cyclist AP table. A one-epoch score is meaningless; the smoke test only proves the chain.

@@ -10,6 +10,10 @@ set -euo pipefail
 : "${NAME:?}" "${ARM:?}" "${SEED:?}" "${HPC_CONFIG:?}"
 EPOCHS="${EPOCHS:-80}"            # OpenPCDet's KITTI PointPillars default
 SELECT_LAST="${SELECT_LAST:-5}"   # last epochs considered for checkpoint selection on the held-out slice
+# Smoke tests only: a one-epoch model predicts nothing at the standard 0.1 score threshold, and OpenPCDet's
+# numba IoU kernel crashes on zero detections. SCORE_THRESH=0.0 makes it emit boxes. Unset for real runs.
+EXTRA_SETS=""
+[ -n "${SCORE_THRESH:-}" ] && EXTRA_SETS="MODEL.POST_PROCESSING.SCORE_THRESH ${SCORE_THRESH}"
 CFG="tools/cfgs/kitti_models/pointpillar.yaml"
 
 source "$HPC_CONFIG"
@@ -76,7 +80,7 @@ trap 'rm -rf "$WORK" "train_${NAME}.py" "cfgs/kitti_models/pointpillar_${LOCAL}.
 echo "=== $NAME: training PointPillars (arm $ARM, seed $SEED, $EPOCHS epochs, $(wc -l < "$WORK/select/ImageSets/train.txt") frames) ==="
 python "train_${NAME}.py" --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" \
   --fix_random_seed --ckpt_save_interval 1 --max_ckpt_save_num "$SELECT_LAST" --workers 4 \
-  --set OPTIMIZATION.NUM_EPOCHS "$EPOCHS" DATA_CONFIG.DATA_PATH "$WORK/select"
+  --set OPTIMIZATION.NUM_EPOCHS "$EPOCHS" DATA_CONFIG.DATA_PATH "$WORK/select" $EXTRA_SETS
 
 OUT="output/kitti_models/pointpillar_${LOCAL}/$NAME"
 echo "=== $NAME: choosing the checkpoint on the held-out slice ==="
@@ -85,7 +89,7 @@ for EP in $(seq $((EPOCHS - SELECT_LAST + 1)) "$EPOCHS"); do
   CK="$OUT/ckpt/checkpoint_epoch_${EP}.pth"
   [ -f "$CK" ] || continue
   python test.py --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" --ckpt "$CK" \
-    --set DATA_CONFIG.DATA_PATH "$WORK/select" > "$WORK/select_${EP}.log" 2>&1
+    --set DATA_CONFIG.DATA_PATH "$WORK/select" $EXTRA_SETS > "$WORK/select_${EP}.log" 2>&1
   M=$(python -c "
 import sys
 from src.evaluation.openpcdet_results import parse_log, primary_outcome
@@ -97,7 +101,7 @@ done
 
 echo "=== $NAME: scoring epoch $BEST_EP on KITTI validation ==="
 python test.py --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" --ckpt "$BEST" \
-  --set DATA_CONFIG.DATA_PATH "$WORK/final" > "$WORK/final.log" 2>&1
+  --set DATA_CONFIG.DATA_PATH "$WORK/final" $EXTRA_SETS > "$WORK/final.log" 2>&1
 mkdir -p "$HPC_ROOT/results"
 python - "$WORK/final.log" "$HPC_ROOT/results/lidar_${ARM}_s${SEED}_kitti_val.json" "$ARM" "$SEED" "$BEST_EP" "$BEST_M" <<'PY'
 import json, sys
