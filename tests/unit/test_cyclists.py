@@ -280,3 +280,12 @@ def test_cyclist_classes_do_not_change_the_policy_identity_of_a_coco_run() -> No
     assert str(RIDER) not in coco and str(BICYCLE) not in coco
     assert str(RIDER) in AnnotationPolicy(PROFILES["riders"]).settings()["max_distance_m"]
     assert str(RIDER) not in AnnotationPolicy(FINE_PROFILE).settings()["max_distance_m"]
+
+
+def test_kitti_profile_camera_is_fixed_height_and_nearly_level() -> None:
+    """The LiDAR study's profile: 1.71 m always, look target within +-1 degree of level."""
+    rng = np.random.default_rng(3)
+    for _ in range(50):
+        assert cs._ego_height(rng, "kitti") == 1.71  # pylint: disable=protected-access
+        target = cs._pitched_target_z(20.0, rng, "kitti")  # pylint: disable=protected-access
+        assert abs(target - 1.71) <= 20.0 * np.tan(np.radians(1.0)) + 1e-9

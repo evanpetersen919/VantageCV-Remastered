@@ -257,7 +257,7 @@ async def _render_scenario(  # pylint: disable=too-many-arguments,too-many-local
         camera = ue_camera(pose.position, pose.look_at, width, height)
         image_id = index * MAX_VIEWS_PER_SCENARIO + view_index
         frame = render_frame(
-            scenario, camera, image_id, f"images/{name}.png", modal=profile == "v7"
+            scenario, camera, image_id, f"images/{name}.png", modal=profile in ("v7", "kitti")
         )
         if exact_labels:
             exact = await capture_exact(

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from src.export.annotation_policy import MIN_BOX_HEIGHT_PX, MIN_BOX_WIDTH_PX, AnnotationPolicy
-from src.ground_truth.categories import BUS, PEDESTRIAN, PROFILES, SEDAN, SUV, TRUCK
+from src.ground_truth.categories import BICYCLE, BUS, PEDESTRIAN, PROFILES, RIDER, SEDAN, SUV, TRUCK
 from src.orchestration.dataset_store import ManifestMismatchError
 from src.orchestration.live_dataset import DEFAULT_VIEWS, default_output_dir, generate_live_dataset
 from src.orchestration.live_render import GameUnavailableError, LiveRenderer
@@ -35,6 +35,8 @@ DISTANCE_CLASSES = {
     "car": (SEDAN, SUV),
     "bus": (BUS,),
     "truck": (TRUCK,),
+    "rider": (RIDER,),
+    "bike": (BICYCLE,),
 }
 
 
@@ -54,7 +56,7 @@ def _policy(args: argparse.Namespace) -> AnnotationPolicy:
 
 def _resolve_profile(args: argparse.Namespace) -> None:
     """Fill the flags left unset from the chosen ``--profile`` (v6 keeps the old defaults)."""
-    v7 = args.profile == "v7"
+    v7 = args.profile in ("v7", "kitti")
     if args.config is None:
         args.config = V7_CONFIG if v7 else V6_CONFIG
     if args.views is None:
@@ -103,10 +105,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", maxsplit=1)[0])
     parser.add_argument(
         "--profile",
-        choices=["v6", "v7"],
+        choices=["v6", "v7", "kitti"],
         default="v6",
         help="v6 is the generator as it was (jitter on, original fleet and views); v7 selects "
-        "the realism fixes (fleet, views, lots, night, weather) unless the matching flag is given",
+        "the realism fixes (fleet, views, lots, night, weather) unless the matching flag is given; "
+        "kitti is v7 with a 1.71 m, nearly level camera and no painted hood (LiDAR study)",
     )
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--bounds", type=float, nargs=4, default=[-150.0, -150.0, 150.0, 150.0])

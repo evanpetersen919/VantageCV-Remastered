@@ -446,7 +446,7 @@ def draw_weather(seed: int, profile: str = "v6") -> Weather:
     """A weather for ``seed`` by ``WEATHER_SHARES`` (``WEATHER_SHARES_V7`` for the v7 profile),
     from its own RNG stream (so no other draw in a scenario changes)."""
     rng = np.random.Generator(np.random.PCG64([seed, 0x9E47]))
-    table = WEATHER_SHARES_V7 if profile == "v7" else WEATHER_SHARES
+    table = WEATHER_SHARES_V7 if profile in ("v7", "kitti") else WEATHER_SHARES
     weathers = list(table)
     shares = np.array([table[weather] for weather in weathers])
     return weathers[int(rng.choice(len(weathers), p=shares / shares.sum()))]
@@ -632,7 +632,7 @@ def scenario_environment(  # pylint: disable=too-many-return-statements
     ValueError
         If a weather other than clear or rain is combined with night.
     """
-    if profile == "v7":
+    if profile in ("v7", "kitti"):
         return _scenario_environment_v7(season, time_of_day, weather, seed)
     if time_of_day == TimeOfDay.NIGHT:
         if weather == Weather.RAIN:

@@ -38,6 +38,10 @@ PITCH_JITTER_RAD = np.radians(3.0)
 # decide whether they go further.
 EGO_HEIGHT_RANGE_V7_M = (1.25, 2.0)
 PITCH_JITTER_V7_RAD = np.radians(7.0)
+# The "kitti" profile (docs/lidar/preregistration.md, amendment 3): the median height of KITTI's
+# camera above the ground measured from its labels, and a nearly level view as KITTI's is.
+EGO_HEIGHT_KITTI_M = 1.71
+PITCH_JITTER_KITTI_RAD = np.radians(1.0)
 LANE_POSITION_RANGE = (0.1, 0.9)
 MIN_CLEAR_AHEAD_M = 15.0
 # A parked vehicle right ahead is normal (it is exactly what a detector needs to see), but the
@@ -130,12 +134,17 @@ def _pitched_target_z(distance_m: float, rng: np.random.Generator, profile: str 
     """``LOOK_TARGET_HEIGHT_M`` shifted by a random pitch within +-``PITCH_JITTER_RAD``
     (``PITCH_JITTER_V7_RAD`` for the v7 profile), for a target ``distance_m`` ahead."""
     limit = PITCH_JITTER_V7_RAD if profile == "v7" else PITCH_JITTER_RAD
+    if profile == "kitti":
+        limit = PITCH_JITTER_KITTI_RAD
     pitch = float(rng.uniform(-limit, limit))
-    return LOOK_TARGET_HEIGHT_M + distance_m * float(np.tan(pitch))
+    target = EGO_HEIGHT_KITTI_M if profile == "kitti" else LOOK_TARGET_HEIGHT_M
+    return target + distance_m * float(np.tan(pitch))
 
 
 def _ego_height(rng: np.random.Generator, profile: str = "v6") -> float:
-    """A camera height from the profile's range."""
+    """A camera height from the profile's range (a fixed 1.71 m for the kitti profile)."""
+    if profile == "kitti":
+        return EGO_HEIGHT_KITTI_M
     return float(rng.uniform(*(EGO_HEIGHT_RANGE_V7_M if profile == "v7" else EGO_HEIGHT_RANGE_M)))
 
 
