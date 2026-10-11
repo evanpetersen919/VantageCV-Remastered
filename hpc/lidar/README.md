@@ -21,7 +21,8 @@ wheel, CUDA module, Python version) before anything trains.
    echo 'export LIDAR_MODULES="python39 cuda11.7/toolkit/11.7.1"' >> hpc/config.local.env
    echo 'export LIDAR_TORCH_INDEX="https://download.pytorch.org/whl/cu117"' >> hpc/config.local.env
    cd .../VantageCV/repo && git pull
-   TORCH_VERSION=1.13.1 TORCHVISION_VERSION=0.14.1 SPCONV_PACKAGE=spconv-cu117 PYTHON=python3 \n     bash hpc/lidar/setup_openpcdet.sh
+   TORCH_VERSION=1.13.1 TORCHVISION_VERSION=0.14.1 SPCONV_PACKAGE=spconv-cu117 PYTHON=python3 \
+     bash hpc/lidar/setup_openpcdet.sh
    ```
 3. **Smoke test** (one epoch of arm A, seed 0), and read its log before anything else:
    ```
