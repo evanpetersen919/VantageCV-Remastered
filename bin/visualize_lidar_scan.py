@@ -12,6 +12,9 @@ sidewalk pink, building grey, vegetation green, car blue, person red, pole and s
 * top right: the points over the camera frame;
 * bottom right: the points alone on black, as a LiDAR-only perspective.
 
+``--view 3d`` draws a perspective 3D scatter instead, from behind and above the sensor, with the
+labelled boxes as wireframes; ``--orbit N`` also writes a GIF that sways the view.
+
 ``--pattern kitti`` is the registered stage 2 sensor (81.6 degrees across, +2 to -24.8 degrees);
 ``--pattern full`` is a debug view over the whole 106 x 74 degree camera frame (64 channels,
 0.1 degree steps), which no real sensor has but shows the entire scene.
@@ -19,6 +22,7 @@ sidewalk pink, building grey, vegetation green, car blue, person red, pole and s
 
 import argparse
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -65,10 +69,20 @@ def _boxes(annotations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     ]
 
 
-def draw(  # pylint: disable=too-many-locals,too-many-statements
-    dataset: Path, frame: int, pattern_name: str, out: Path
-) -> Path:
-    """Write ``<out>/<pattern>_<frame>.png`` for the ``frame``-th frame that has a depth map."""
+@dataclass
+class Frame:
+    """One frame's scan and what it is drawn with."""
+
+    image: Dict[str, Any]
+    annotations: List[Dict[str, Any]]
+    label: npt.NDArray[np.float64]  # points in the level camera frame: x right, y down, z forward
+    colours: npt.NDArray[np.float64]
+    pixel_x: npt.NDArray[np.int32]
+    pixel_y: npt.NDArray[np.int32]
+
+
+def load_frame(dataset: Path, frame: int, pattern_name: str) -> Frame:
+    """Sample the scan of the ``frame``-th frame that has a depth map and colour it by class."""
     data = json.loads((dataset / "annotations.json").read_text(encoding="utf-8"))
     image = [i for i in data["images"] if "depth_file" in i][frame]
     annotations = [a for a in data["annotations"] if a["image_id"] == image["id"]]
@@ -80,8 +94,23 @@ def draw(  # pylint: disable=too-many-locals,too-many-statements
     scan = sample_scan(depth, camera.intrinsics.focal_length_x, pattern)
     intrinsic = camera.intrinsics.get_intrinsic_matrix()
     back = np.linalg.inv(intrinsic) @ projection_matrix(camera)[:, :3]
-    label = scan.points.astype(np.float64) @ back  # level camera frame: x right, y down, z fwd
+    label = scan.points.astype(np.float64) @ back
     colours = _class_colours(classes[scan.pixel_y, scan.pixel_x])
+    return Frame(image, annotations, label, colours, scan.pixel_x, scan.pixel_y)
+
+
+def draw(  # pylint: disable=too-many-locals,too-many-statements
+    dataset: Path, frame: int, pattern_name: str, out: Path
+) -> Path:
+    """Write ``<out>/<pattern>_<frame>.png`` for the ``frame``-th frame that has a depth map."""
+    loaded = load_frame(dataset, frame, pattern_name)
+    image, annotations, label, colours = (
+        loaded.image,
+        loaded.annotations,
+        loaded.label,
+        loaded.colours,
+    )
+    scan = loaded  # pixel_x and pixel_y
 
     figure = plt.figure(figsize=(21, 11), facecolor="white")
     grid = GridSpec(2, 2, width_ratios=[1.0, 1.7], figure=figure)
@@ -126,6 +155,82 @@ def draw(  # pylint: disable=too-many-locals,too-many-statements
     return target
 
 
+BOX_EDGES = (
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 0),
+    (4, 5),
+    (5, 6),
+    (6, 7),
+    (7, 4),
+    (0, 4),
+    (1, 5),
+    (2, 6),
+    (3, 7),
+)
+
+
+def _draw_3d(axes: Any, loaded: Frame, elevation: float, azimuth: float) -> None:
+    """Points as a 3D scatter (x left, y forward, z up) with the labelled boxes as wireframes."""
+    label = loaded.label
+    axes.set_facecolor("black")
+    axes.scatter(
+        -label[:, 0],
+        label[:, 2],
+        -label[:, 1],
+        c=loaded.colours,
+        s=1.2,
+        linewidths=0,
+        depthshade=False,
+    )
+    for annotation in _boxes(loaded.annotations):
+        corners = box_corners(annotation["box3d"])
+        colour = BOX_COLOURS[annotation["category_id"]]
+        for first, second in BOX_EDGES:
+            segment = corners[[first, second]]
+            axes.plot(-segment[:, 0], segment[:, 2], -segment[:, 1], color=colour, lw=1.0)
+    axes.set_xlim(25, -25)
+    axes.set_ylim(0, 60)
+    axes.set_zlim(-2, 10)
+    axes.set_box_aspect((50, 60, 12), zoom=1.9)
+    axes.view_init(elev=elevation, azim=azimuth)
+    axes.set_axis_off()
+
+
+def draw_3d(dataset: Path, frame: int, pattern_name: str, out: Path, orbit: int = 0) -> Path:
+    """A 3D perspective of the scan (``<out>/<pattern>_<frame>_3d.png``); with ``orbit`` > 0 also a
+    turning GIF of that many frames, ``<pattern>_<frame>_orbit.gif``."""
+    loaded = load_frame(dataset, frame, pattern_name)
+    out.mkdir(parents=True, exist_ok=True)
+
+    def render(azimuth: float, elevation: float) -> Image.Image:
+        figure = plt.figure(figsize=(10, 7), facecolor="black")
+        axes = figure.add_subplot(111, projection="3d")
+        _draw_3d(axes, loaded, elevation, azimuth)
+        figure.subplots_adjust(0, 0, 1, 1)
+        figure.canvas.draw()
+        canvas: Any = figure.canvas
+        buffer = np.asarray(canvas.buffer_rgba())[:, :, :3].copy()
+        plt.close(figure)
+        return Image.fromarray(buffer)
+
+    # behind and above the sensor (the sensor is at the origin, looking along +y)
+    still = render(azimuth=-90.0, elevation=26.0)
+    target = out / f"{pattern_name}_{frame:03d}_3d.png"
+    still.save(target)
+    if orbit > 0:
+        frames = [render(-90.0 + 70.0 * np.sin(2 * np.pi * k / orbit), 26.0) for k in range(orbit)]
+        frames[0].save(
+            out / f"{pattern_name}_{frame:03d}_orbit.gif",
+            save_all=True,
+            append_images=frames[1:],
+            duration=90,
+            loop=0,
+        )
+    return target
+
+
 def main() -> None:
     """Parse arguments and draw."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n", maxsplit=1)[0])
@@ -133,9 +238,21 @@ def main() -> None:
     parser.add_argument("--frame", type=int, nargs="+", default=[0])
     parser.add_argument("--pattern", choices=["kitti", "full"], default="kitti")
     parser.add_argument("--out", type=Path, default=Path("demo/lidar_viz"))
+    parser.add_argument(
+        "--view",
+        choices=["panels", "3d"],
+        default="panels",
+        help="panels: bird's-eye + camera overlay + points alone; 3d: a perspective 3D view",
+    )
+    parser.add_argument(
+        "--orbit", type=int, default=0, help="with --view 3d: also write a turning GIF of N frames"
+    )
     args = parser.parse_args()
     for frame in args.frame:
-        print(draw(args.dataset, frame, args.pattern, args.out))
+        if args.view == "3d":
+            print(draw_3d(args.dataset, frame, args.pattern, args.out, args.orbit))
+        else:
+            print(draw(args.dataset, frame, args.pattern, args.out))
 
 
 if __name__ == "__main__":
