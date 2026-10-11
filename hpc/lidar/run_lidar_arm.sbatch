@@ -34,6 +34,7 @@ for ROLE in select final; do
   cp "$DATA/ImageSets/$ARM.txt" "$ROOT/ImageSets/train.txt"
   if [ "$ROLE" = select ]; then cp "$DATA/ImageSets/hold.txt" "$ROOT/ImageSets/val.txt"
   else cp "$DATA/ImageSets/val.txt" "$ROOT/ImageSets/val.txt"; fi
+  : > "$ROOT/ImageSets/test.txt"   # create_kitti_infos also builds a test split; an empty list is enough
 done
 
 cd "$SRC"
