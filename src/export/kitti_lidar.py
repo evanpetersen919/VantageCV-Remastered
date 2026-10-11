@@ -39,6 +39,17 @@ RIDER_ID, BIKE_ID = 10, 2
 TR_VELO_TO_CAM = np.array([[0.0, -1.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0], [1.0, 0.0, 0.0, 0.0]])
 
 
+def read_calibration(path: Any) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """(``R0_rect`` 3 x 3, ``Tr_velo_to_cam`` 3 x 4) from a KITTI ``calib`` file."""
+    values: Dict[str, npt.NDArray[np.float64]] = {}
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            if ":" in line:
+                key, rest = line.split(":", 1)
+                values[key] = np.array(rest.split(), dtype=np.float64)
+    return values["R0_rect"].reshape(3, 3), values["Tr_velo_to_cam"].reshape(3, 4)
+
+
 def kitti_projection() -> npt.NDArray[np.float64]:
     """The 3 x 4 projection of KITTI's front camera (no stereo offset: the sensor is the camera)."""
     return np.array(
