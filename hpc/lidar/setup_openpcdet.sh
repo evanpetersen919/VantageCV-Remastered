@@ -66,7 +66,17 @@ pip install "numpy==$NUMPY_VERSION"   # the requirements pin an older NumPy; kee
 pip install scipy pycocotools
 export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-6.0;6.1;7.0;7.5;8.0;8.6+PTX}"
 echo "compiling for CUDA architectures: $TORCH_CUDA_ARCH_LIST"
-(cd "$SRC" && python setup.py develop)
+mkdir -p "$HPC_ROOT/logs"
+BUILD_LOG="$HPC_ROOT/logs/openpcdet_build.log"
+echo "gcc: $(gcc --version | head -n 1)   nvcc: $(nvcc --version | tail -n 1)"
+if ! (cd "$SRC" && python setup.py develop) > "$BUILD_LOG" 2>&1; then
+  echo "BUILD FAILED. First compiler errors (full log: $BUILD_LOG):" >&2
+  grep -n -i -m 12 -E "error|fatal|unsupported|not supported" "$BUILD_LOG" >&2 || true
+  echo "--- last 15 lines ---" >&2
+  tail -n 15 "$BUILD_LOG" >&2
+  exit 1
+fi
+tail -n 3 "$BUILD_LOG"
 
 python - <<'PY'
 import pcdet
