@@ -110,10 +110,11 @@ def test_beam_pattern_counts() -> None:
 
 
 def test_kitti_pattern_matches_the_measured_sensor() -> None:
-    """Amendment 3: 81.6 degrees across, elevations -24.8 to +2.0, 80 m, 64 channels."""
+    """Amendments 3 and 5: 81.6 degrees across, 0.18 degree steps, -24.8 to +2.0, 80 m, 64 ch."""
     elevations = KITTI_PATTERN.elevations_deg()
     azimuths = KITTI_PATTERN.azimuths_deg()
     assert len(elevations) == 64
     assert elevations[0] == pytest.approx(-24.8) and elevations[-1] == pytest.approx(2.0)
     assert azimuths[0] == pytest.approx(-40.8) and azimuths[-1] == pytest.approx(40.8)
     assert KITTI_PATTERN.max_range_m == 80.0
+    assert KITTI_PATTERN.azimuth_step_deg == 0.18

@@ -187,3 +187,21 @@ Apache-2.0; checked here: disjoint, and together exactly frames 000000 to 007480
 "validation split" it means this one. The 10% real base of section 4 is drawn from the 3,712 training frames (about 371),
 seeded, and the validation frames are never used for training or for choosing a checkpoint other than by the rule
 fixed for the camera studies (a held-out slice of the training frames).
+
+**2026-10-10, amendment 5 (azimuth step corrected from a measured density check; written before any stage 2 scan is
+rendered; no decision rule changed).** Amendment 3 left the azimuth step a choice at 0.1 degree and said the density
+check would decide. A 16-frame probe in the kitti profile (`--profile kitti`, 1.71 m, nearly level; probe frames are not
+study data) gave 51,332 points per scan against KITTI's measured level, so the choice was wrong. Amendment 3's remark
+that 0.18 degrees is "twice the published 0.09" was also wrong: KITTI was recorded at 10 Hz, where the unit's azimuth
+step is about 0.17 to 0.18 degrees; 119,450 points per revolution over 64 channels is about 1,866 returns per channel,
+a step of 0.19 degrees, and the measured step was 0.179. The step is therefore **0.18 degrees** (measured).
+
+Targets restated with like-for-like definitions, measured on 499 KITTI training scans (every 15th frame): **points inside
+the image view (u in [0, 1242), v in [0, 375)) mean 19,084**; for **untruncated, fully visible cars** the median points
+per car by range are 1,773 (0 to 10 m, 26 cars), 777 (10 to 20 m, 184), 210 (20 to 30 m, 165), 91 (30 to 40 m, 132) and 19
+(40 to 80 m, 233). The earlier "27,309" counted the whole 81.6 degree sector without the vertical limit of the image.
+Probe at 0.18 degrees: 16,457 points in the image view (86% of KITTI's) and per-car medians 3,012, 812, 341, 116 and 47
+(9, 18, 15, 11 and 15 cars; fully visible, same distance bands), that is +70%, +5%, +62%, +27% and about 2.5 times
+KITTI's. The synthetic cars return more points than real ones at range, as expected of a clean surface with no dropout
+(dark and specular paint, rain); the pattern is not tuned further, as that would be fitting the supplement to the test
+distribution, and the full set's table (section 5) is reported as measured.

@@ -23,6 +23,9 @@ from PIL import Image
 
 from src.export.box3d_formats import projection_matrix
 from src.export.kitti_lidar import (
+    KITTI_CX,
+    KITTI_CY,
+    KITTI_FX,
     KITTI_HEIGHT,
     KITTI_WIDTH,
     calibration,
@@ -43,7 +46,8 @@ def _car_points_by_range(
     """Add the point count of every car of the frame to ``bands`` (by distance of its box)."""
     for annotation in annotations:
         box = annotation.get("box3d")
-        if annotation["category_id"] != 3 or box is None:
+        fully_visible = annotation.get("visibility_fraction", 0.0) > 0.9
+        if annotation["category_id"] != 3 or box is None or not fully_visible:
             continue
         distance = float(np.hypot(box["location"][0], box["location"][2]))
         count = int(points_in_box(label_points, box, 0.1).sum())
@@ -67,6 +71,7 @@ def export(  # pylint: disable=too-many-locals
     bands: Dict[str, List[int]] = {f"{low:g}-{high:g}": [] for low, high in RANGE_BANDS_M}
     ids: List[str] = []
     points_per_scan: List[int] = []
+    points_in_image: List[int] = []
     labels_per_type: Dict[str, int] = {}
     for image in data["images"]:
         if "depth_file" not in image:
@@ -93,6 +98,12 @@ def export(  # pylint: disable=too-many-locals
         blank.save(root / "image_2" / f"{sample}.png")
         _car_points_by_range(label_points, by_image.get(image["id"], []), bands)
         points_per_scan.append(len(scan.points))
+        depth_z = np.maximum(label_points[:, 2], 1e-6)
+        u = KITTI_FX * label_points[:, 0] / depth_z + KITTI_CX
+        v = KITTI_FX * label_points[:, 1] / depth_z + KITTI_CY
+        points_in_image.append(
+            int(((u >= 0) & (u < KITTI_WIDTH) & (v >= 0) & (v < KITTI_HEIGHT)).sum())
+        )
         ids.append(sample)
     (out / "ImageSets").mkdir(parents=True, exist_ok=True)
     (out / "ImageSets" / "synthetic.txt").write_text("\n".join(ids) + "\n", encoding="utf-8")
@@ -100,6 +111,7 @@ def export(  # pylint: disable=too-many-locals
         "frames": len(ids),
         "first_id": ids[0] if ids else None,
         "points_per_scan_mean": float(np.mean(points_per_scan)) if points_per_scan else 0.0,
+        "points_in_kitti_image_mean": float(np.mean(points_in_image)) if points_in_image else 0.0,
         "labels_per_type": labels_per_type,
         "car_points_by_range_m": {
             name: {

@@ -53,12 +53,13 @@ class BeamPattern:
 # The stage 2 sensor of docs/lidar/preregistration.md, amendment 3: KITTI's front camera field
 # (81.6 degrees horizontal, from its calibration: 721.5 px focal length, 1242 px wide), elevations
 # from the lowest KITTI return (-24.8) to its 99th percentile rounded down (+2.0), the measured
-# 80 m maximum range, and a 0.1 degree azimuth step (a choice; not cleanly measured).
+# 80 m maximum range, and a 0.18 degree azimuth step (amendment 5: 119,450 points per revolution
+# over 64 channels is about 1,866 returns per channel, a step of 0.19 degrees; measured 0.179).
 KITTI_PATTERN = BeamPattern(
     channels=64,
     vertical_fov_deg=26.8,
     horizontal_fov_deg=81.6,
-    azimuth_step_deg=0.1,
+    azimuth_step_deg=0.18,
     max_range_m=80.0,
     elevation_centre_deg=-11.4,
 )
