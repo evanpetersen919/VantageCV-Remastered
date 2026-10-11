@@ -142,3 +142,14 @@ would be a new amendment with its own detector recipe and rules, written before 
 this: it trains on a subset of KITTI's labelled training split and is scored on the held-out validation part of that
 split, using KITTI's own metric code locally. **No submission is made to the KITTI test server**, and the results are not
 presented as leaderboard entries. The test split's labels are not available and are not used.
+
+**2026-10-10, amendment 2 (sampling detail fixed before any engine depth is sampled; no rule changed).** A first
+implementation (`src/sensors/depth_lidar.py`, tested on synthetic planes only, no engine depth yet) showed that reading
+the nearest depth pixel puts a slanted surface off by a pixel's footprint along the beam: on a level ground plane
+between 20 and 50 m the nearest-pixel range is off by a median 0.14 m and up to 0.30 m, which would fail check 3.1 on
+the ground for a reason that has nothing to do with the engine. The registered sampler therefore **interpolates
+inverse depth between the four neighbouring pixel centres** (exact on a plane) when all four have a surface and their
+depths agree within 5% of the nearest (a **choice**), and otherwise uses the nearest pixel, so nothing is blended across
+an object edge. On the synthetic ground plane the interpolated range error is below 1 cm. Check 3.1 is measured on the
+registered sampler; the nearest-pixel error is reported beside it. The default sensor pattern is 64 channels over
+the camera's vertical field and 0.1 degree azimuth steps with a 120 m range limit (a **choice**).
