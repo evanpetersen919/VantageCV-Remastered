@@ -167,9 +167,18 @@ def to_velodyne_frame(points_camera: npt.NDArray[np.floating[Any]]) -> npt.NDArr
     return np.asarray(np.stack([z, -x, -y], axis=-1), dtype=np.float32)
 
 
-def write_kitti_bin(path: Path, points_velodyne: npt.NDArray[np.floating[Any]]) -> None:
-    """KITTI ``.bin``: float32 ``x y z intensity`` per point. Intensity is 0: the depth has none."""
+def write_kitti_bin(
+    path: Path,
+    points_velodyne: npt.NDArray[np.floating[Any]],
+    intensity: Optional[npt.NDArray[np.floating[Any]]] = None,
+) -> None:
+    """KITTI ``.bin``: float32 ``x y z intensity`` per point.
+
+    Intensity is 0 unless ``intensity`` is given: the depth carries none.
+    """
     data = np.zeros((points_velodyne.shape[0], 4), dtype=np.float32)
     data[:, :3] = points_velodyne
+    if intensity is not None:
+        data[:, 3] = intensity
     path.parent.mkdir(parents=True, exist_ok=True)
     data.tofile(path)

@@ -8,6 +8,10 @@
 # (EPOCHS=1 bash hpc/lidar/submit_lidar_study.sh smoke A 0).
 set -euo pipefail
 : "${NAME:?}" "${ARM:?}" "${SEED:?}" "${HPC_CONFIG:?}"
+# RESULT_NAME names the result file when it must differ from the list name (the intensity-off
+# controls reuse the lists of A, B, E and E3); NO_INTENSITY=1 zeroes every point's intensity.
+RESULT_NAME="${RESULT_NAME:-$ARM}"
+NO_INTENSITY="${NO_INTENSITY:-0}"
 EPOCHS="${EPOCHS:-80}"            # OpenPCDet's KITTI PointPillars default
 SELECT_LAST="${SELECT_LAST:-5}"   # last epochs considered for checkpoint selection on the held-out slice
 # Smoke tests only: a one-epoch model predicts nothing at the standard 0.1 score threshold, and OpenPCDet's
@@ -42,6 +46,8 @@ for ROLE in select final; do
 done
 
 cd "$SRC"
+ZERO_PATCH_DIR="$HPC_ROOT/repo/hpc/lidar"
+if [ "$NO_INTENSITY" = 1 ]; then export PYTHONPATH="$ZERO_PATCH_DIR:${PYTHONPATH:-}"; fi
 # OpenPCDet's create_kitti_infos CLI hard-codes data/kitti under the repo; call the function with our paths.
 for ROLE in select final; do
 python - "$WORK/$ROLE" <<'PY'
@@ -53,6 +59,9 @@ import pcdet.datasets.kitti.kitti_dataset as kitti_dataset
 from pcdet.datasets.kitti.kitti_dataset import create_kitti_infos
 # this commit imports Path only under its own __main__, but create_groundtruth_database uses it
 kitti_dataset.Path = Path
+import os
+if os.environ.get("NO_INTENSITY") == "1":
+    import zero_intensity_patch  # noqa: F401
 root = Path(sys.argv[1])
 cfg = EasyDict(yaml.safe_load(open("tools/cfgs/dataset_configs/kitti_dataset.yaml")))
 cfg.DATA_PATH = str(root)
@@ -64,6 +73,10 @@ done
 # OpenPCDet's train.py fixes its seed at 666 (two places) with --fix_random_seed; use a job-local copy with ours.
 cp tools/train.py "tools/train_${NAME}.py"
 sed -i "s/666/${SEED}/g" "tools/train_${NAME}.py"
+cp tools/test.py "tools/test_${NAME}.py"
+if [ "$NO_INTENSITY" = 1 ]; then
+  sed -i "1i import zero_intensity_patch  # noqa: F401" "tools/train_${NAME}.py" "tools/test_${NAME}.py"
+fi
 if grep -q "666" "tools/train_${NAME}.py" || ! grep -q "random_seed(${SEED}" "tools/train_${NAME}.py"; then
   echo "ERROR: seed patch did not apply (train.py changed upstream?)" >&2; exit 1
 fi
@@ -76,7 +89,7 @@ LOCAL="${NAME}"
 sed "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/" cfgs/dataset_configs/kitti_dataset.yaml   > "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"
 sed -e "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/"     -e "s#cfgs/dataset_configs/kitti_dataset.yaml#cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml#"     cfgs/kitti_models/pointpillar.yaml > "cfgs/kitti_models/pointpillar_${LOCAL}.yaml"
 grep -q "USE_ROAD_PLANE: True" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"   && { echo "ERROR: road plane still enabled in the local config" >&2; exit 1; }
-trap 'rm -rf "$WORK" "train_${NAME}.py" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"' EXIT
+trap 'rm -rf "$WORK" "train_${NAME}.py" "test_${NAME}.py" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"' EXIT
 export PYTHONFAULTHANDLER=1   # a segmentation fault then prints the Python stack that led to it
 # numba 0.56 built-in CUDA driver layer segfaults creating a context against this cluster's 580-series driver
 # (hpc/lidar/check_numba_variants.py: only the NVIDIA cuda-python binding works). The KITTI evaluation's
@@ -95,7 +108,7 @@ BEST=""; BEST_M=-1
 for EP in $(seq $((EPOCHS - SELECT_LAST + 1)) "$EPOCHS"); do
   CK="$OUT/ckpt/checkpoint_epoch_${EP}.pth"
   [ -f "$CK" ] || continue
-  python test.py --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" --ckpt "$CK" \
+  python "test_${NAME}.py" --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" --ckpt "$CK" \
     --set DATA_CONFIG.DATA_PATH "$WORK/select" $EXTRA_SETS > "$WORK/select_${EP}.log" 2>&1
   M=$(python -c "
 import sys
@@ -107,10 +120,10 @@ done
 [ -n "$BEST" ] || { echo "ERROR: no checkpoint was evaluated" >&2; exit 1; }
 
 echo "=== $NAME: scoring epoch $BEST_EP on KITTI validation ==="
-python test.py --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" --ckpt "$BEST" \
+python "test_${NAME}.py" --cfg_file "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" --extra_tag "$NAME" --ckpt "$BEST" \
   --set DATA_CONFIG.DATA_PATH "$WORK/final" $EXTRA_SETS > "$WORK/final.log" 2>&1
 mkdir -p "$HPC_ROOT/results"
-python - "$WORK/final.log" "$HPC_ROOT/results/lidar_${ARM}_s${SEED}_kitti_val.json" "$ARM" "$SEED" "$BEST_EP" "$BEST_M" <<'PY'
+python - "$WORK/final.log" "$HPC_ROOT/results/lidar_${RESULT_NAME}_s${SEED}_kitti_val.json" "$RESULT_NAME" "$SEED" "$BEST_EP" "$BEST_M" <<'PY'
 import json, sys
 from src.evaluation.openpcdet_results import parse_log, primary_outcome
 log, out, arm, seed, epoch, held = sys.argv[1:7]

@@ -15,7 +15,7 @@ points per scan and per labelled car by range is written to ``<out>/synthetic_su
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -28,6 +28,7 @@ from src.export.kitti_lidar import (
     KITTI_FX,
     KITTI_HEIGHT,
     KITTI_WIDTH,
+    Conventions,
     calibration,
     frame_labels,
     points_in_box,
@@ -35,6 +36,7 @@ from src.export.kitti_lidar import (
 )
 from src.orchestration.live_render import camera_from_image_entry
 from src.sensors.depth_lidar import KITTI_PATTERN, sample_scan, to_velodyne_frame, write_kitti_bin
+from src.sensors.lidar_intensity import sample_intensity
 
 RANGE_BANDS_M = ((0.0, 10.0), (10.0, 20.0), (20.0, 30.0), (30.0, 40.0), (40.0, 80.0))
 
@@ -57,10 +59,19 @@ def _car_points_by_range(
                 bands[f"{low:g}-{high:g}"].append(count)
 
 
-def export(  # pylint: disable=too-many-locals
-    dataset: Path, out: Path, first_id: int
+def export(  # pylint: disable=too-many-locals,too-many-arguments
+    dataset: Path,
+    out: Path,
+    first_id: int,
+    conventions: Optional[Conventions] = None,
+    intensity_constants: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Write every frame of ``dataset``; returns the summary dictionary."""
+    """Write every frame of ``dataset``; returns the summary dictionary.
+
+    ``conventions`` applies the KITTI label conventions (range cap, Van rule, pedestrian
+    footprint); ``intensity_constants`` draws each point's reflectance from KITTI's class and
+    range conditioned histograms (follow-up study); both default to off.
+    """
     data = json.loads((dataset / "annotations.json").read_text(encoding="utf-8"))
     by_image: Dict[int, List[Dict[str, Any]]] = {}
     for annotation in data["annotations"]:
@@ -87,8 +98,19 @@ def export(  # pylint: disable=too-many-locals
             @ projection_matrix(camera)[:, :3]
         )
         label_points = scan.points.astype(np.float64) @ back
-        write_kitti_bin(root / "velodyne" / f"{sample}.bin", to_velodyne_frame(label_points))
-        lines = with_dont_care(frame_labels(by_image.get(image["id"], [])))
+        reflectance = None
+        if intensity_constants is not None:
+            classes = np.asarray(Image.open(dataset / image["semantic_file"]))
+            reflectance = sample_intensity(
+                classes[scan.pixel_y, scan.pixel_x],
+                scan.ranges,
+                intensity_constants,
+                seed=first_id + len(ids),
+            )
+        write_kitti_bin(
+            root / "velodyne" / f"{sample}.bin", to_velodyne_frame(label_points), reflectance
+        )
+        lines = with_dont_care(frame_labels(by_image.get(image["id"], []), conventions))
         for line in lines:
             kind = line.split()[0]
             if kind == "DontCare":
@@ -134,8 +156,47 @@ def main() -> None:
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--first-id", type=int, default=100000)
+    parser.add_argument(
+        "--constants", type=Path, default=Path("configs/kitti_derived_constants.json")
+    )
+    parser.add_argument(
+        "--range-cap", action="store_true", help="T1: drop labels beyond KITTI's range"
+    )
+    parser.add_argument(
+        "--van-rule", action="store_true", help="T2: call long Cars Van, as KITTI does"
+    )
+    parser.add_argument(
+        "--pedestrian-footprint",
+        action="store_true",
+        help="T3: pedestrian boxes take KITTI's mean width and length",
+    )
+    parser.add_argument(
+        "--intensity",
+        action="store_true",
+        help="T5: reflectance from KITTI's class and range conditioned histograms",
+    )
     args = parser.parse_args()
-    print(json.dumps(export(args.dataset, args.out, args.first_id), indent=1))
+    constants = json.loads(args.constants.read_text(encoding="utf-8"))
+    conventions = Conventions(
+        range_cap_m=constants["range_cap_m"] if args.range_cap else None,
+        van_length_m=constants["car_length_p95_m"] if args.van_rule else None,
+        pedestrian_footprint_m=(
+            (
+                constants["pedestrian_box_m"]["width"],
+                constants["pedestrian_box_m"]["length"],
+            )
+            if args.pedestrian_footprint
+            else None
+        ),
+    )
+    summary = export(
+        args.dataset,
+        args.out,
+        args.first_id,
+        conventions,
+        constants if args.intensity else None,
+    )
+    print(json.dumps(summary, indent=1))
 
 
 if __name__ == "__main__":
