@@ -13,7 +13,9 @@
 #   TORCH_VERSION / TORCHVISION_VERSION  pin both (e.g. 1.13.1 and 0.14.1, the range OpenPCDet is used with)
 #   OPENPCDET_REF    git tag or commit to build (default v0.5.2, the newest tag)
 #   NUMPY_VERSION    NumPy pin installed right after torch (default 1.23.5)
-#   TORCH_CUDA_ARCH_LIST   GPU architectures to compile for, e.g. "8.0;8.6" (default: let torch detect)
+#   TORCH_CUDA_ARCH_LIST   GPU architectures to compile for. The login node has no GPU, so torch cannot detect
+#                    one and the build fails without a list; the default covers P100/V100/T4/A100/A10/A40/3090,
+#                    and newer cards run the 8.6 PTX. Narrow it (e.g. "8.0") to compile faster once the GPU is known.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 source "$HERE/config.env"
@@ -62,6 +64,8 @@ pip install "$SPCONV_PACKAGE"
 pip install -r "$SRC/requirements.txt"
 pip install "numpy==$NUMPY_VERSION"   # the requirements pin an older NumPy; keep one that numba accepts
 pip install scipy pycocotools
+export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-6.0;6.1;7.0;7.5;8.0;8.6+PTX}"
+echo "compiling for CUDA architectures: $TORCH_CUDA_ARCH_LIST"
 (cd "$SRC" && python setup.py develop)
 
 python - <<'PY'
