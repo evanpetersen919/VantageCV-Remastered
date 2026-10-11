@@ -31,6 +31,7 @@ from src.export.kitti_lidar import (
     calibration,
     frame_labels,
     points_in_box,
+    with_dont_care,
 )
 from src.orchestration.live_render import camera_from_image_entry
 from src.sensors.depth_lidar import KITTI_PATTERN, sample_scan, to_velodyne_frame, write_kitti_bin
@@ -87,9 +88,11 @@ def export(  # pylint: disable=too-many-locals
         )
         label_points = scan.points.astype(np.float64) @ back
         write_kitti_bin(root / "velodyne" / f"{sample}.bin", to_velodyne_frame(label_points))
-        lines = frame_labels(by_image.get(image["id"], []))
+        lines = with_dont_care(frame_labels(by_image.get(image["id"], [])))
         for line in lines:
             kind = line.split()[0]
+            if kind == "DontCare":
+                continue
             labels_per_type[kind] = labels_per_type.get(kind, 0) + 1
         (root / "label_2" / f"{sample}.txt").write_text(
             "\n".join(lines) + ("\n" if lines else ""), encoding="utf-8"

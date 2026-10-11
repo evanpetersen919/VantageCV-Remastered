@@ -145,6 +145,15 @@ def _ground_distance(first: Dict[str, Any], second: Dict[str, Any]) -> float:
     return math.hypot(a[0] - b[0], a[2] - b[2])
 
 
+# KITTI's own "ignore this region" marker; OpenPCDet's info builder cannot read an empty label file.
+DONT_CARE_LINE = "DontCare -1 -1 -10 0.00 0.00 1.00 1.00 -1 -1 -1 -1000 -1000 -1000 -10"
+
+
+def with_dont_care(lines: Sequence[str]) -> List[str]:
+    """``lines``, or one ``DontCare`` line for a frame with no objects (real KITTI has none)."""
+    return list(lines) if lines else [DONT_CARE_LINE]
+
+
 def frame_labels(  # pylint: disable=too-many-locals
     annotations: Sequence[Dict[str, Any]]
 ) -> List[str]:

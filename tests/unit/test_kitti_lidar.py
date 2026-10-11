@@ -99,3 +99,12 @@ def test_points_in_box_respects_rotation_and_margin() -> None:
     assert kl.points_in_box(inside, box, 0.0).all()
     assert not kl.points_in_box(outside, box, 0.0).any()
     assert kl.points_in_box(outside, box, 0.4).all()
+
+
+def test_empty_frame_gets_one_dont_care_line() -> None:
+    """OpenPCDet's info builder cannot read an empty label file; KITTI's ignore marker is used."""
+    assert kl.with_dont_care([]) == [kl.DONT_CARE_LINE]
+    assert kl.with_dont_care(["Car 0.00 0 0.00 1 2 3 4 1 1 1 0 0 10 0"]) == [
+        "Car 0.00 0 0.00 1 2 3 4 1 1 1 0 0 10 0"
+    ]
+    assert len(kl.DONT_CARE_LINE.split()) == 15
