@@ -1,0 +1,31 @@
+{
+ "dataset": "live_dataset\\rider_v18",
+ "counts": {
+  "images_with_cyclist_labels": 1196,
+  "riders": 1353,
+  "bikes": 1257,
+  "missing_mask": 0,
+  "box_not_tight_mask": 10,
+  "empty_mask": 0,
+  "bad_visibility": 0,
+  "box_outside_image": 0,
+  "bikes_ridden": 1227,
+  "bikes_unridden": 30,
+  "riders_without_bike": 126
+ },
+ "rider_height_px_720p": {
+  "p5": 14.666666666666666,
+  "p25": 34.666666666666664,
+  "p50": 64.0,
+  "p75": 124.66666666666667,
+  "p95": 214.0
+ },
+ "hard_defects": {
+  "missing_mask": 0,
+  "box_not_tight_mask": 10,
+  "empty_mask": 0,
+  "bad_visibility": 0,
+  "box_outside_image": 0
+ },
+ "passed": false
+}
