@@ -53,3 +53,4 @@ The entries are in order of when they were run, one file each under [`docs/exper
 | 36 | [v17 street realism: does it change detector AP? (pre-registered 2026-10-10; no resolvable effect: +0.15 AP)](docs/experiments/36_v17-street-realism-detector-test-preregistered.md) |
 | 37 | [Class shares depend on the field of view (2026-10-10)](docs/experiments/37_class-shares-depend-on-the-field-of-view.md) |
 | 38 | [Cyclist study: synthetic riders against the same number of real extras (2026-10-11; E beats real-only by +4.9 AP, not real extras; bootstrap pending)](docs/experiments/38_cyclist-study-synthetic-riders-against-real-extras.md) |
+| 39 | [LiDAR study: synthetic scans against the same number of real extras (2026-10-11; E = A, real extras +5.8; bootstrap pending; absolute APs unexplained)](docs/experiments/39_lidar-synthetic-scans-against-real-extras.md) |

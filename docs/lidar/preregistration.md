@@ -215,3 +215,5 @@ were downloaded, and the synthetic frames have none. The recipe is therefore run
 OpenPCDet PointPillars configuration other than the number of epochs (default 80, unchanged), the data paths and the
 random seed; it is applied by the job script (`hpc/lidar/run_lidar_arm.sbatch`) to a job-local copy of the
 configuration files. It may lower absolute AP against published PointPillars numbers; it affects A, B and E alike.
+
+**2026-10-11, result.** Stage 1 passed (`stage1_range_check.md`, `stage1_label_check.md`). Stage 2 was run as registered; the outcome, with the paired t-interval, per-class results, the sweep and the benchmark caveats (absolute levels, shared recording drives between the standard train and validation lists), is in `docs/experiments/39_lidar-synthetic-scans-against-real-extras.md`. The paired bootstrap of criterion 3 is not computed (per-scan detections are not saved), so the decision is provisional.
