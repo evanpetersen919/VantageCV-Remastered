@@ -60,3 +60,15 @@ def test_car_guard_failure_blocks_helps(tmp_path: Path) -> None:
     result = study.analyse(tmp_path)
     assert not result["guard_holds"]
     assert result["verdict"].startswith("inconclusive")
+
+
+def test_missing_sweep_arms_are_skipped(tmp_path: Path) -> None:
+    """The registered arms alone are enough to analyse; the sweep is optional."""
+    _fill(tmp_path, e_gain=4.0, noise=0.2)
+    for path in tmp_path.glob("lidar_*250_*.json"):
+        path.unlink()
+    for path in tmp_path.glob("lidar_*500_*.json"):
+        path.unlink()
+    result = study.analyse(tmp_path)
+    assert result["sweep"] == {}
+    assert result["verdict"].startswith("helps")

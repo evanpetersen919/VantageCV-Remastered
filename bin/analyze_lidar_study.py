@@ -68,7 +68,10 @@ def analyse(results: Path) -> Dict[str, Any]:
     guard = per_class["E"]["Car"] - per_class["A"]["Car"]
     guard_holds = guard >= -GUARD_TOLERANCE_AP
     sweep: Dict[str, Any] = {}
-    for arm in SWEEP_ARMS:
+    for arm in SWEEP_ARMS:  # the exploratory sweep is optional: only arms whose runs all exist
+        files = [results / f"lidar_{arm}_s{s}_kitti_val.json" for s in SWEEP_SEEDS]
+        if not all(f.exists() for f in files):
+            continue
         values = [float(load(results, arm, s)["M"]) for s in SWEEP_SEEDS]
         sweep[arm] = {"M_mean": mean(values), "M_by_seed": values}
     return {
