@@ -150,3 +150,5 @@ pinhole relation at this renderer's 73.74 degree vertical field), rounded. Rider
 labelled, as for the other classes. The same cutoff is used for `bike` (a bike is about 0.95 m tall, so at 50 m its
 box is about 9 px, just above the 8 px minimum). This is a design value derived from a measured quantile, not a fit to
 detector results; the audit reports the rendered height quartiles beside the measured ones.
+
+**2026-10-11, result.** The study was run as registered; the outcome, with the paired t-interval and every secondary comparison, is in `docs/experiments/38_cyclist-study-synthetic-riders-against-real-extras.md`. The paired bootstrap of criterion 3 is not yet computed (per-image detections are needed), so the decision is provisional.
