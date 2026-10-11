@@ -38,14 +38,14 @@ PY
 
 [ -d "$VENV" ] || $PYTHON -m venv "$VENV"
 source "$VENV/bin/activate"
-pip install --upgrade pip wheel setuptools
+pip install --upgrade pip wheel
+pip install "setuptools<70"   # torch 1.13's extension builder imports pkg_resources, gone from setuptools 81+
 LIDAR_TORCH_INDEX="${LIDAR_TORCH_INDEX:-$TORCH_INDEX}"
 if [ -n "${TORCH_VERSION:-}" ]; then
   pip install "torch==$TORCH_VERSION" "torchvision==${TORCHVISION_VERSION:?set TORCHVISION_VERSION with TORCH_VERSION}" --index-url "$LIDAR_TORCH_INDEX"
 else
   pip install torch torchvision --index-url "$LIDAR_TORCH_INDEX"
 fi
-pip install "numpy==$NUMPY_VERSION"
 python -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cuda, 'available', torch.cuda.is_available())"
 which nvcc >/dev/null 2>&1 || { echo "ERROR: nvcc not found; load a CUDA module (set MODULES in hpc/config.local.env) so the extensions can build" >&2; exit 1; }
 
@@ -60,6 +60,7 @@ echo "OpenPCDet at $(git -C "$SRC" rev-parse --short HEAD) ($OPENPCDET_REF)"
 
 pip install "$SPCONV_PACKAGE"
 pip install -r "$SRC/requirements.txt"
+pip install "numpy==$NUMPY_VERSION"   # the requirements pin an older NumPy; keep one that numba accepts
 pip install scipy pycocotools
 (cd "$SRC" && python setup.py develop)
 
