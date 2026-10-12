@@ -106,3 +106,21 @@ helped Cyclist in the intensity-off control (+4.9 [+1.5, +8.3]). Pedestrian AP f
 
 Everything else, including the single confirmatory test (E4 - A), is unchanged. These additions are exploratory:
 there are now more arms than the original design, and no arm is picked by its result.
+
+
+**2026-10-11, amendment 2 (a dilution test; written before these arms are trained; the confirmatory test is
+unchanged).** The density arms of amendment 1 gave E1lo - E1rnd pedestrian +0.1 [-2.9, +3.2] (density is not
+resolved), and a dose-response nobody predicted: with the same conventions (T1, T2), pedestrian AP against A was
+-1.8 [-3.5, -0.1] for 299 added frames and -6.9 [-10.1, -3.6] for 1,000 (difference +5.1 [+0.9, +9.2]), while cyclist
+AP stayed above A at every size. A candidate explanation is **dilution**: with 1,000 synthetic frames the 371 real
+frames are 27% of the training set, so the pedestrian class is learned mostly from synthetic pedestrians.
+
+- **H6 (stated before the arms run).** If pedestrian harm is dilution, listing the real base three times
+  (real share about 53%) with the same 1,000 synthetic frames should recover pedestrian AP: `E1x3` - `E1` pedestrian
+  above 0, and `E1x3` closer to `Ax3` than `E1` is to `A`.
+- **Arms.** `Ax3`: the real base listed three times, no synthetic frames (the control for repetition itself, which
+  also triples the number of optimizer steps per epoch and the weight of real objects in the ground-truth sampler).
+  `E1x3`: the real base listed three times plus the E1 frames. Seeds 0 to 4, recipe unchanged.
+- **Reading.** Contrasts `E1x3 - E1`, `E1x3 - Ax3` and `Ax3 - A`, each with its paired interval, per class. If
+  `Ax3 - A` is not near zero, repetition changes the baseline and `E1x3 - Ax3` is the comparison that carries the
+  meaning. Descriptive, not a new confirmatory test.
