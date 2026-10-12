@@ -120,8 +120,13 @@ sed "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/" cfgs/dataset_configs/kitti_d
 sed -e "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/"     -e "s#cfgs/dataset_configs/kitti_dataset.yaml#cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml#"     cfgs/kitti_models/pointpillar.yaml > "cfgs/kitti_models/pointpillar_${LOCAL}.yaml"
 if [ "$DOMAIN_FLAG" = 1 ]; then
   # fifth point feature: listed as an input, and the ground-truth database holds five columns
+  # pointpillar.yaml redefines the augmentor, with its own NUM_POINT_FEATURES (the sampler reads the database with it)
   sed -i -e "s/'intensity'\]/'intensity', 'flag']/g" -e "s/NUM_POINT_FEATURES: 4/NUM_POINT_FEATURES: 5/"     "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"
+  sed -i "s/NUM_POINT_FEATURES: 4/NUM_POINT_FEATURES: 5/" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml"
   grep -q "'flag'" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"     && grep -q "NUM_POINT_FEATURES: 5" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"     || { echo "ERROR: the domain-flag config edit did not apply" >&2; exit 1; }
+  if grep -q "NUM_POINT_FEATURES: 4" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml"; then
+    echo "ERROR: a NUM_POINT_FEATURES: 4 is left in the local configs" >&2; exit 1
+  fi
 fi
 grep -q "USE_ROAD_PLANE: True" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"   && { echo "ERROR: road plane still enabled in the local config" >&2; exit 1; }
 trap 'rm -rf "$WORK" "train_${NAME}.py" "test_${NAME}.py" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"' EXIT
