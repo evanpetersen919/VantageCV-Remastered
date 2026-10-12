@@ -12,6 +12,12 @@ set -euo pipefail
 # controls reuse the lists of A, B, E and E3); NO_INTENSITY=1 zeroes every point's intensity.
 RESULT_NAME="${RESULT_NAME:-$ARM}"
 NO_INTENSITY="${NO_INTENSITY:-0}"
+# Stage 0 of the improvement study (docs/lidar/improvement_preregistration.md): REAL_DB_ONLY=1 builds the
+# ground-truth-sampling database from the arm's real frames only (ids below 100000, synthetic ids start there);
+# DOMAIN_FLAG=1 adds a fifth point feature, 0 for a real frame and 1 for a synthetic one. EPOCHS (above) sets
+# the matched-step baselines.
+REAL_DB_ONLY="${REAL_DB_ONLY:-0}"
+DOMAIN_FLAG="${DOMAIN_FLAG:-0}"
 EPOCHS="${EPOCHS:-80}"            # OpenPCDet's KITTI PointPillars default
 SELECT_LAST="${SELECT_LAST:-5}"   # last epochs considered for checkpoint selection on the held-out slice
 # Smoke tests only: a one-epoch model predicts nothing at the standard 0.1 score threshold, and OpenPCDet's
@@ -47,9 +53,20 @@ done
 
 cd "$SRC"
 ZERO_PATCH_DIR="$HPC_ROOT/repo/hpc/lidar"
-if [ "$NO_INTENSITY" = 1 ]; then export PYTHONPATH="$ZERO_PATCH_DIR:${PYTHONPATH:-}"; fi
+if [ "$NO_INTENSITY" = 1 ] || [ "$DOMAIN_FLAG" = 1 ]; then export PYTHONPATH="$ZERO_PATCH_DIR:${PYTHONPATH:-}"; fi
+ROOTS="select final"
+if [ "$REAL_DB_ONLY" = 1 ]; then
+  RDB="$WORK/realdb"
+  mkdir -p "$RDB/ImageSets"
+  ln -s "$DATA/training" "$RDB/training"
+  tr -d '' < "$DATA/ImageSets/$ARM.txt" | awk '$1 + 0 < 100000' > "$RDB/ImageSets/train.txt"
+  cp "$DATA/ImageSets/hold.txt" "$RDB/ImageSets/val.txt"
+  : > "$RDB/ImageSets/test.txt"
+  echo "real-only database from $(wc -l < "$RDB/ImageSets/train.txt") real frames"
+  ROOTS="select final realdb"
+fi
 # OpenPCDet's create_kitti_infos CLI hard-codes data/kitti under the repo; call the function with our paths.
-for ROLE in select final; do
+for ROLE in $ROOTS; do
 python - "$WORK/$ROLE" <<'PY'
 import sys
 from pathlib import Path
@@ -62,6 +79,8 @@ kitti_dataset.Path = Path
 import os
 if os.environ.get("NO_INTENSITY") == "1":
     import zero_intensity_patch  # noqa: F401
+if os.environ.get("DOMAIN_FLAG") == "1":
+    import domain_flag_patch  # noqa: F401
 root = Path(sys.argv[1])
 cfg = EasyDict(yaml.safe_load(open("tools/cfgs/dataset_configs/kitti_dataset.yaml")))
 cfg.DATA_PATH = str(root)
@@ -69,6 +88,14 @@ create_kitti_infos(dataset_cfg=cfg, class_names=["Car", "Pedestrian", "Cyclist"]
                    data_path=root, save_path=root)
 PY
 done
+if [ "$REAL_DB_ONLY" = 1 ]; then
+  # the sampler reads gt_database/ and kitti_dbinfos_train.pkl under each root: replace them with the real-only ones
+  for ROLE in select final; do
+    rm -rf "$WORK/$ROLE/gt_database" "$WORK/$ROLE/kitti_dbinfos_train.pkl"
+    cp -r "$WORK/realdb/gt_database" "$WORK/$ROLE/gt_database"
+    cp "$WORK/realdb/kitti_dbinfos_train.pkl" "$WORK/$ROLE/kitti_dbinfos_train.pkl"
+  done
+fi
 
 # OpenPCDet's train.py fixes its seed at 666 (two places) with --fix_random_seed; use a job-local copy with ours.
 cp tools/train.py "tools/train_${NAME}.py"
@@ -76,6 +103,9 @@ sed -i "s/666/${SEED}/g" "tools/train_${NAME}.py"
 cp tools/test.py "tools/test_${NAME}.py"
 if [ "$NO_INTENSITY" = 1 ]; then
   sed -i "1i import zero_intensity_patch  # noqa: F401" "tools/train_${NAME}.py" "tools/test_${NAME}.py"
+fi
+if [ "$DOMAIN_FLAG" = 1 ]; then
+  sed -i "1i import domain_flag_patch  # noqa: F401" "tools/train_${NAME}.py" "tools/test_${NAME}.py"
 fi
 if grep -q "666" "tools/train_${NAME}.py" || ! grep -q "random_seed(${SEED}" "tools/train_${NAME}.py"; then
   echo "ERROR: seed patch did not apply (train.py changed upstream?)" >&2; exit 1
@@ -88,6 +118,11 @@ cd tools
 LOCAL="${NAME}"
 sed "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/" cfgs/dataset_configs/kitti_dataset.yaml   > "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"
 sed -e "s/USE_ROAD_PLANE: True/USE_ROAD_PLANE: False/"     -e "s#cfgs/dataset_configs/kitti_dataset.yaml#cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml#"     cfgs/kitti_models/pointpillar.yaml > "cfgs/kitti_models/pointpillar_${LOCAL}.yaml"
+if [ "$DOMAIN_FLAG" = 1 ]; then
+  # fifth point feature: listed as an input, and the ground-truth database holds five columns
+  sed -i -e "s/'intensity'\]/'intensity', 'flag']/g" -e "s/NUM_POINT_FEATURES: 4/NUM_POINT_FEATURES: 5/"     "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"
+  grep -q "'flag'" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"     && grep -q "NUM_POINT_FEATURES: 5" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"     || { echo "ERROR: the domain-flag config edit did not apply" >&2; exit 1; }
+fi
 grep -q "USE_ROAD_PLANE: True" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"   && { echo "ERROR: road plane still enabled in the local config" >&2; exit 1; }
 trap 'rm -rf "$WORK" "train_${NAME}.py" "test_${NAME}.py" "cfgs/kitti_models/pointpillar_${LOCAL}.yaml" "cfgs/dataset_configs/kitti_dataset_${LOCAL}.yaml"' EXIT
 export PYTHONFAULTHANDLER=1   # a segmentation fault then prints the Python stack that led to it

@@ -59,3 +59,25 @@ parsed per-class AP. The seed is patched into a job-local copy of OpenPCDet's `t
   OpenPCDet changes that text the parser will raise rather than return a wrong number.
 - The paired bootstrap of the decision rule needs per-scan detections, which this setup does not save; the verdict
   from `analyze_lidar_study.py` is provisional.
+
+## Improvement study, stages 0 and 1 (`docs/lidar/improvement_preregistration.md`)
+
+New arms are the lists `S1` to `S4` (beam table, dropout and noise, minimum points) plus stage 0 recipe arms. Upload
+`vantagecv_lidar_improvement.tar` (1.7 GB, only the new frames and lists) and extract it next to `lidar_study`:
+
+```
+scp F:\hpc_upload\vantagecv_lidar_improvement.tar <user>@<cluster>:/scratch/<user>/VantageCV/
+cd /scratch/<user>/VantageCV/data && tar -xf ../vantagecv_lidar_improvement.tar
+```
+
+Two new switches in `run_lidar_arm.sbatch` have **not been run yet**, so smoke them before submitting:
+`REAL_DB_ONLY=1` (ground-truth database from real frames only; builds a third info root) and `DOMAIN_FLAG=1`
+(`domain_flag_patch.py`, five point features). One epoch each, seed 0:
+
+```
+EPOCHS=1 SELECT_LAST=1 SCORE_THRESH=0.0 REAL_DB_ONLY=1 RESULT_NAME=smoke_rdb bash hpc/lidar/submit_lidar_study.sh smoke_rdb E3a 0
+EPOCHS=1 SELECT_LAST=1 SCORE_THRESH=0.0 DOMAIN_FLAG=1 RESULT_NAME=smoke_flag bash hpc/lidar/submit_lidar_study.sh smoke_flag E4 0
+```
+
+Then `bash hpc/lidar/submit_lidar_improvement.sh` (50 jobs: stage 1 first, stage 0 after), or
+`GROUPS_=stage1 bash ...` to start with the four sensor arms.
