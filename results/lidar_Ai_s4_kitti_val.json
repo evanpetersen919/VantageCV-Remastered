@@ -1,0 +1,75 @@
+{
+ "arm": "Ai",
+ "seed": 4,
+ "epoch": 78,
+ "held_out_M": 69.45156666666666,
+ "M": 65.64913333333334,
+ "classes": {
+  "Car": {
+   "bbox": {
+    "easy": 90.3137,
+    "moderate": 82.6985,
+    "hard": 79.6909
+   },
+   "bev": {
+    "easy": 90.6363,
+    "moderate": 88.9331,
+    "hard": 87.4836
+   },
+   "3d": {
+    "easy": 90.633,
+    "moderate": 88.6105,
+    "hard": 86.5529
+   },
+   "aos": {
+    "easy": 90.26,
+    "moderate": 82.29,
+    "hard": 79.15
+   }
+  },
+  "Pedestrian": {
+   "bbox": {
+    "easy": 52.9795,
+    "moderate": 49.1347,
+    "hard": 47.1571
+   },
+   "bev": {
+    "easy": 60.1407,
+    "moderate": 56.1368,
+    "hard": 53.6575
+   },
+   "3d": {
+    "easy": 59.9121,
+    "moderate": 55.6998,
+    "hard": 53.0722
+   },
+   "aos": {
+    "easy": 28.77,
+    "moderate": 26.67,
+    "hard": 25.75
+   }
+  },
+  "Cyclist": {
+   "bbox": {
+    "easy": 68.7447,
+    "moderate": 52.3341,
+    "hard": 49.726
+   },
+   "bev": {
+    "easy": 69.8574,
+    "moderate": 52.6376,
+    "hard": 49.1518
+   },
+   "3d": {
+    "easy": 69.8574,
+    "moderate": 52.6371,
+    "hard": 49.1177
+   },
+   "aos": {
+    "easy": 60.98,
+    "moderate": 46.5,
+    "hard": 44.2
+   }
+  }
+ }
+}

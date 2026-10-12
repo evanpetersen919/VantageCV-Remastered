@@ -89,4 +89,20 @@ intensity" (E3-i against A-i).
 
 ## Amendments
 
-(none yet)
+**2026-10-11, amendment 1 (arms added after the first batch of results; written before any of these
+arms is trained; the confirmatory test is unchanged).** The first batch (E1, E2 and the intensity-off controls
+A-i, B-i, E0-i, five seeds) did not support H1, H2 or H4: E1 - E0 = -0.86 M [-1.46, -0.27]; E2 - E1 pedestrian
+-3.1 [-7.7, +1.5]; E0-i - A-i pedestrian -13.8 [-15.3, -12.3] against E0 - A pedestrian -4.1; the synthetic scans
+helped Cyclist in the intensity-off control (+4.9 [+1.5, +8.3]). Pedestrian AP fell from 56.2 (A) through 52.1 (E0),
+49.3 (E1) to 46.2 (E2). Two further sets of arms are added, all descriptive, none a new confirmatory test:
+
+1. **A direct test of H3 on frames already rendered.** `E1lo`: the 299 `kitti_v18` frames that have 0 to 2 pedestrians
+   within 40 m (KITTI's level: 94% of its frames have two or fewer), with the E1 conventions (T1, T2). `E1rnd`:
+   299 frames drawn at random from the same frames with the same conventions, the size-matched control. Both add
+   299 frames to A. E1lo - E1rnd isolates pedestrian density at equal frame count and equal conventions.
+2. **The chain without T3.** `E3a` = `kitti_v19` with T1 and T2 only; `E4a` = `E3a` with T5. E2's pedestrian result
+   is in the wrong direction (unresolved), so the chain's later steps are also run without the footprint change,
+   and E3 - E3a is the footprint effect on KITTI-density scenes. The original E3, E4 and E3-i stay as registered.
+
+Everything else, including the single confirmatory test (E4 - A), is unchanged. These additions are exploratory:
+there are now more arms than the original design, and no arm is picked by its result.

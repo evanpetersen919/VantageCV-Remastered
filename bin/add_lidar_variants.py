@@ -16,7 +16,7 @@ import json
 import os
 import shutil
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -30,11 +30,20 @@ def shuffled_frames(ids: List[str], seed: int) -> List[str]:
 
 
 def add_variant(  # pylint: disable=too-many-arguments,too-many-locals
-    bundle: Path, name: str, folder: Path, extra: int, seed: int, new_files: List[str]
+    bundle: Path,
+    name: str,
+    folder: Path,
+    extra: int,
+    seed: int,
+    new_files: List[str],
+    ids_file: Optional[Path] = None,
 ) -> int:
     """Link one variant's frames into the bundle and write its list; returns the frames added."""
     kitti = bundle / "kitti"
     ids = (folder / "ImageSets" / "synthetic.txt").read_text(encoding="utf-8").split()
+    if ids_file is not None:  # restrict to a listed subset of the folder's frames
+        allowed = set(ids_file.read_text(encoding="utf-8").split())
+        ids = [i for i in ids if i in allowed]
     if len(ids) < extra:
         raise ValueError(f"{name}: only {len(ids)} frames, need {extra}")
     chosen = shuffled_frames(ids, seed)[:extra]
@@ -61,14 +70,39 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", maxsplit=1)[0])
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--variant", action="append", default=[], metavar="NAME=FOLDER")
+    parser.add_argument(
+        "--ids",
+        action="append",
+        default=[],
+        metavar="NAME=FILE",
+        help="restrict that variant to the frame ids listed in FILE",
+    )
+    parser.add_argument(
+        "--limit",
+        action="append",
+        default=[],
+        metavar="NAME=N",
+        help="add only N frames for that variant (default: --extra)",
+    )
     parser.add_argument("--extra", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     new_files: List[str] = []
     added: Dict[str, int] = {}
+    id_files = dict(item.split("=", 1) for item in args.ids)
+    limits = {k: int(v) for k, v in (item.split("=", 1) for item in args.limit)}
     for item in args.variant:
         name, _, folder = item.partition("=")
-        added[name] = add_variant(args.bundle, name, Path(folder), args.extra, args.seed, new_files)
+        ids_file = Path(id_files[name]) if name in id_files else None
+        added[name] = add_variant(
+            args.bundle,
+            name,
+            Path(folder),
+            limits.get(name, args.extra),
+            args.seed,
+            new_files,
+            ids_file,
+        )
     (args.bundle / "followup_files.txt").write_text("\n".join(new_files) + "\n", encoding="utf-8")
     print(json.dumps({"added": added, "files": len(new_files)}, indent=1))
 
