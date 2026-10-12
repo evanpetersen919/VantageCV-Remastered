@@ -133,8 +133,9 @@ Full write-up: `docs/experiments/40_lidar-follow-up-fixing-the-measured-gaps.md`
 - **Confirmatory E4 - A: M -3.95 [-5.99, -1.92]**, all five seeds negative, Car guard holds (-0.68). The fixes do
   not make synthetic scans helpful; the bootstrap over scans is still pending.
 - H1 (labels) not supported (E1 - E0 -0.86 [-1.46, -0.27]); H2 (footprint) not supported (unresolved); H3
-  (density) unresolved; H4 (intensity) refuted (E4 - E3 -3.0 [-3.7, -2.4]); H6 (dilution) supported
-  (E1x3 - E1 pedestrian +8.9 [+3.6, +14.2]; E1x3 - Ax3 pedestrian -1.4 [-3.7, +0.8]).
+  (density) unresolved; H4 (intensity) refuted (E4 - E3 -3.0 [-3.7, -2.4]); H6 (dilution) met on its two stated
+  conditions (E1x3 - E1 pedestrian +8.9 [+3.6, +14.2]; E1x3 - Ax3 pedestrian -1.4 [-3.7, +0.8]) but confounded with
+  optimizer steps; H4 is refuted as implemented (sampled reflectance), not for intensity in general.
 - `Ax3 - A` is +2.1 [+0.7, +3.5]: repetition alone helps, so A under-trains against the larger arms; the
   step-matched comparisons in entry 40 are post hoc and labelled so.
 

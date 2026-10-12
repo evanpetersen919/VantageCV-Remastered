@@ -56,15 +56,17 @@ verdict stays provisional, but the t-interval is not close to 0.
 | H1 labels (T1, T2) | E rises toward A | E1 - E0: M -0.86 [-1.46, -0.27]; pedestrian -2.7 [-5.7, +0.2] | **not supported** (slightly worse) |
 | H2 footprint (T3) | pedestrian rises | E2 - E1 pedestrian -3.1 [-7.7, +1.5]; E3 - E3a pedestrian -0.6 [-3.3, +2.1] | **not supported**, unresolved |
 | H3 density (T4) | pedestrian rises | E1lo - E1rnd pedestrian +0.15 [-2.9, +3.2]; E3a - E1 pedestrian +3.0 [-2.3, +8.2] | **unresolved** |
-| H4 intensity (T5) | E rises | E4 - E3 M **-3.0 [-3.7, -2.4]** (pedestrian -8.0); E4a - E3a M **-3.1 [-4.0, -2.2]** | **refuted**: resolved harm |
-| H6 dilution | pedestrian recovers at 3x real | E1x3 - E1 pedestrian **+8.9 [+3.6, +14.2]**; E1x3 - Ax3 pedestrian -1.4 [-3.7, +0.8] against E1 - A -6.9 | **supported** on both stated conditions |
+| H4 intensity (T5) | E rises | E4 - E3 M **-3.0 [-3.7, -2.4]** (pedestrian -8.0); E4a - E3a M **-3.1 [-4.0, -2.2]** | **refuted as implemented** (per-point histogram-sampled reflectance); resolved harm |
+| H6 dilution | pedestrian recovers at 3x real | E1x3 - E1 pedestrian **+8.9 [+3.6, +14.2]**; E1x3 - Ax3 pedestrian -1.4 [-3.7, +0.8] against E1 - A -6.9 | both stated conditions met, but **share and optimizer steps are confounded** (E1x3 has 1.5x the steps of E1; steps alone gave pedestrian +3.5), so "dilution" is not isolated |
 
 Beyond the registered readings:
 
 - **With three times the real share, synthetic scans are no longer harmful.** E1x3 - Ax3 is +1.2 [-0.7, +3.2] on M,
-  and cyclist +5.0 [+1.2, +8.8] is resolved; pedestrian is -1.4 (unresolved). So most of the pedestrian damage in
-  entries 39 and here is **dilution**: with 371 real frames in a training set of 1,371, the pedestrian class is
-  learned mostly from synthetic pedestrians.
+  and cyclist +5.0 [+1.2, +8.8] is nominally resolved (post hoc; per-seed 6.3, 7.5, 7.8, 1.6, 1.7; it does not
+  survive correction for the ~25 contrasts, and E1x3 cyclist 61.8 is still below B's 65.4); pedestrian is -1.4
+  (unresolved). A candidate reading is **dilution**: with 371 real frames in a training set of 1,371, the pedestrian
+  class is learned mostly from synthetic pedestrians. It is not isolated: real share and optimizer steps change
+  together, and a step-matched E1 control has not been run.
 - **Repetition alone helps.** Ax3 - A is +2.1 [+0.7, +3.5] on M (pedestrian +3.5 [+1.9, +5.0]), with no new
   information. The base A under-trains in 80 epochs relative to the 1,371-frame arms, so entry 39's gain of B over A
   (+5.8) contains a step-count effect. Post hoc (not registered): against the step-matched base, B - Ax3 is
@@ -81,9 +83,9 @@ Beyond the registered readings:
 
 - The audit's gaps were real and measured, but **fixing the labels, footprint, density and intensity as specified
   did not make synthetic LiDAR scans helpful on this recipe**; the confirmatory test is negative.
-- The one result that changes the picture is the dilution test. Synthetic scans were hurting mostly through their
-  share of the training set, not through their labels; at 3x real share they are neutral on pedestrians and help
-  cyclists (+5.0 over the step-matched base).
+- The result that changes the picture is the dilution test, with the confound above: at 3x real share synthetic
+  scans are no longer clearly harmful on pedestrians (-1.4, unresolved), and the cyclist gain is suggestive, not
+  established.
 - Sampled reflectance made things worse, not better. Intensity is a real gap (G5) that this transform does not close.
 - Still open from the audit: points per pedestrian (G6, 0.55 times KITTI's), dropout and noise, the shared-drive
   property of the standard split (absolute AP above published values).
