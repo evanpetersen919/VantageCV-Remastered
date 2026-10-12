@@ -35,8 +35,9 @@ from src.export.kitti_lidar import (
     with_dont_care,
 )
 from src.orchestration.live_render import camera_from_image_entry
-from src.sensors.depth_lidar import KITTI_PATTERN, sample_scan, to_velodyne_frame, write_kitti_bin
+from src.sensors.depth_lidar import KITTI_PATTERN, to_velodyne_frame, write_kitti_bin
 from src.sensors.lidar_intensity import sample_intensity
+from src.sensors.lidar_realism import Realism, load_realism, realistic_scan
 
 RANGE_BANDS_M = ((0.0, 10.0), (10.0, 20.0), (20.0, 30.0), (30.0, 40.0), (40.0, 80.0))
 
@@ -59,19 +60,35 @@ def _car_points_by_range(
                 bands[f"{low:g}-{high:g}"].append(count)
 
 
-def export(  # pylint: disable=too-many-locals,too-many-arguments
+def _dense_annotations(
+    annotations: List[Dict[str, Any]], label_points: npt.NDArray[np.float64], minimum: int
+) -> List[Dict[str, Any]]:
+    """The annotations with at least ``minimum`` returns inside their 3D box (all without a box)."""
+    return [
+        a
+        for a in annotations
+        if a.get("box3d") is None or points_in_box(label_points, a["box3d"], 0.0).sum() >= minimum
+    ]
+
+
+def export(  # pylint: disable=too-many-locals,too-many-arguments,too-many-statements
     dataset: Path,
     out: Path,
     first_id: int,
     conventions: Optional[Conventions] = None,
     intensity_constants: Optional[Dict[str, Any]] = None,
+    realism: Optional[Realism] = None,
 ) -> Dict[str, Any]:
     """Write every frame of ``dataset``; returns the summary dictionary.
 
     ``conventions`` applies the KITTI label conventions (range cap, Van rule, pedestrian
     footprint); ``intensity_constants`` draws each point's reflectance from KITTI's class and
-    range conditioned histograms (follow-up study); both default to off.
+    range conditioned histograms (follow-up study); ``realism`` applies the measured ring table,
+    dropout, range noise and minimum-points label rule (docs/lidar/improvement_plan.md); all
+    default to off.
     """
+    realism = realism or Realism()
+    unlabelled_sparse = 0
     data = json.loads((dataset / "annotations.json").read_text(encoding="utf-8"))
     by_image: Dict[int, List[Dict[str, Any]]] = {}
     for annotation in data["annotations"]:
@@ -92,7 +109,13 @@ def export(  # pylint: disable=too-many-locals,too-many-arguments
         depth = np.asarray(Image.open(dataset / image["depth_file"])).astype(np.float64)
         depth = (depth / float(image["depth_scale"])).astype(np.float32)
         camera = camera_from_image_entry(image)
-        scan = sample_scan(depth, camera.intrinsics.focal_length_x, KITTI_PATTERN)
+        scan = realistic_scan(
+            depth,
+            camera.intrinsics.focal_length_x,
+            KITTI_PATTERN,
+            realism,
+            seed=first_id + len(ids),
+        )
         back = (
             np.linalg.inv(camera.intrinsics.get_intrinsic_matrix())
             @ projection_matrix(camera)[:, :3]
@@ -110,7 +133,12 @@ def export(  # pylint: disable=too-many-locals,too-many-arguments
         write_kitti_bin(
             root / "velodyne" / f"{sample}.bin", to_velodyne_frame(label_points), reflectance
         )
-        lines = with_dont_care(frame_labels(by_image.get(image["id"], []), conventions))
+        annotations = by_image.get(image["id"], [])
+        if realism.min_points > 0:
+            dense = _dense_annotations(annotations, label_points, realism.min_points)
+            unlabelled_sparse += len(annotations) - len(dense)
+            annotations = dense
+        lines = with_dont_care(frame_labels(annotations, conventions))
         for line in lines:
             kind = line.split()[0]
             if kind == "DontCare":
@@ -138,6 +166,7 @@ def export(  # pylint: disable=too-many-locals,too-many-arguments
         "points_per_scan_mean": float(np.mean(points_per_scan)) if points_per_scan else 0.0,
         "points_in_kitti_image_mean": float(np.mean(points_in_image)) if points_in_image else 0.0,
         "labels_per_type": labels_per_type,
+        "annotations_left_unlabelled_for_sparsity": unlabelled_sparse,
         "car_points_by_range_m": {
             name: {
                 "cars": len(counts),
@@ -175,6 +204,18 @@ def main() -> None:
         action="store_true",
         help="T5: reflectance from KITTI's class and range conditioned histograms",
     )
+    parser.add_argument(
+        "--beam-pattern", type=Path, default=Path("configs/kitti_beam_pattern.json")
+    )
+    parser.add_argument("--beam-table", action="store_true", help="S1: KITTI's ring elevations")
+    parser.add_argument("--dropout", action="store_true", help="S2: per-ring return dropout")
+    parser.add_argument("--range-noise", action="store_true", help="S2: extra range scatter")
+    parser.add_argument(
+        "--min-points",
+        type=int,
+        default=0,
+        help="S3: leave an object unlabelled when fewer returns than this fall in its box",
+    )
     args = parser.parse_args()
     constants = json.loads(args.constants.read_text(encoding="utf-8"))
     conventions = Conventions(
@@ -195,6 +236,13 @@ def main() -> None:
         args.first_id,
         conventions,
         constants if args.intensity else None,
+        load_realism(
+            args.beam_pattern,
+            table=args.beam_table,
+            dropout=args.dropout,
+            noise=args.range_noise,
+            min_points=args.min_points,
+        ),
     )
     print(json.dumps(summary, indent=1))
 

@@ -16,7 +16,7 @@ dropout, no noise, no intensity (the depth carries none).
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -28,7 +28,9 @@ class BeamPattern:
 
     ``channels`` elevations are spaced uniformly over ``vertical_fov_deg`` and azimuths over
     ``horizontal_fov_deg`` at ``azimuth_step_deg``; the horizontal field is centred on the axis and
-    the vertical one on ``elevation_centre_deg`` (0 by default, a level sensor).
+    the vertical one on ``elevation_centre_deg`` (0 by default, a level sensor). When
+    ``elevation_table_deg`` is given it is used as the channel elevations (bottom to top, one
+    per channel) instead of the uniform spacing, for sensors whose rings are not evenly spaced.
     """
 
     channels: int = 64
@@ -37,9 +39,14 @@ class BeamPattern:
     azimuth_step_deg: float = 0.1
     max_range_m: float = 120.0
     elevation_centre_deg: float = 0.0
+    elevation_table_deg: Optional[Tuple[float, ...]] = None
 
     def elevations_deg(self) -> npt.NDArray[np.float64]:
         """Channel elevations, bottom to top."""
+        if self.elevation_table_deg is not None:
+            if len(self.elevation_table_deg) != self.channels:
+                raise ValueError("elevation_table_deg must have one entry per channel")
+            return np.asarray(self.elevation_table_deg, dtype=np.float64)
         half = self.vertical_fov_deg / 2.0
         return np.linspace(-half, half, self.channels) + self.elevation_centre_deg
 
