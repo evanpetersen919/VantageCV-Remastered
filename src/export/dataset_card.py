@@ -292,7 +292,7 @@ segmentation copy `labels_seg/` over `labels/`).
 
 `DATASET_TERMS.md` (a draft, not yet reviewed by counsel) and `NOTICES.md` (Epic Games, Microsoft
 Rocketbox and CC0 source attributions) apply. Code, tools and the experiment log:
-https://github.com/evanpetersen919/VantageCV-V2 . Cite as: Petersen, E., VantageCV Remastered:
+https://github.com/evanpetersen919/VantageCV-Remastered . Cite as: Petersen, E., VantageCV Remastered:
 Synthetic AV Dataset Generator, 2026 (see `CITATION.cff` in the repository).
 """
     (out / "README.md").write_text(card, encoding="utf-8")

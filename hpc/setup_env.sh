@@ -9,7 +9,7 @@ for m in $MODULES; do module load "$m"; done
 
 mkdir -p "$HPC_ROOT"/{data,yaml,runs,results,logs}
 if [ ! -d "$HPC_ROOT/repo/.git" ]; then
-  git clone https://github.com/evanpetersen919/VantageCV-V2.git "$HPC_ROOT/repo"
+  git clone https://github.com/evanpetersen919/VantageCV-Remastered.git "$HPC_ROOT/repo"
 fi
 
 python3 -m venv "$HPC_ROOT/venv"

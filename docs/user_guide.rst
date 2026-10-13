@@ -6,8 +6,8 @@ Installation
 
 .. code-block:: bash
 
-   git clone https://github.com/evanpetersen919/VantageCV-V2.git
-   cd VantageCV-V2
+   git clone https://github.com/evanpetersen919/VantageCV-Remastered.git
+   cd VantageCV-Remastered
    poetry install
    poetry run pytest --cov=src tests/
 

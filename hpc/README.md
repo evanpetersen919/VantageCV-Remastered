@@ -30,7 +30,7 @@ scp vantagecv_data.tar <you>@<cluster>:~/vantagecv/
 ## 3. One-time setup (on the cluster)
 
 ```bash
-git clone https://github.com/evanpetersen919/VantageCV-V2.git ~/vantagecv/repo
+git clone https://github.com/evanpetersen919/VantageCV-Remastered.git ~/vantagecv/repo
 cd ~/vantagecv/repo
 cp hpc/config.env hpc/config.local.env   # your copy; git-ignored, so pulls never conflict
 nano hpc/config.local.env                # fill in HPC_ROOT, partition, time limit, modules
