@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this project or its experiment log, please cite it as below."
 title: "VantageCV Remastered: Synthetic AV Dataset Generator"
-version: "2.0.0"
+version: "2.1.0"
 date-released: "2026-10-13"
 authors:
   - family-names: "Petersen"

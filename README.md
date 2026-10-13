@@ -1,9 +1,9 @@
 # VantageCV Remastered
 
-### Synthetic AV Dataset Generator V2.0
+### Synthetic AV Dataset Generator V2.1
 
 [![Lint and Test](https://github.com/evanpetersen919/VantageCV-V2/actions/workflows/lint_and_test.yml/badge.svg)](https://github.com/evanpetersen919/VantageCV-V2/actions/workflows/lint_and_test.yml)
-![Version 2.0](https://img.shields.io/badge/version-2.0-1baf7a.svg)
+![Version 2.1](https://img.shields.io/badge/version-2.1-1baf7a.svg)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)
 ![Unreal Engine 5.4](https://img.shields.io/badge/Unreal%20Engine-5.4-black.svg)

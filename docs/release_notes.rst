@@ -1,6 +1,34 @@
 Release Notes
 ==============
 
+2.1 -- 2026-10-13
+-----------------
+
+A public dataset, and the packaging and licensing record behind it. The generator, the LiDAR and the cyclist
+pipeline are unchanged from 2.0.
+
+**Dataset**
+
+- The images-only Rocketbox batch ``rider_v18`` is published on Kaggle
+  (https://www.kaggle.com/datasets/evanpetersen919/vantagecv-synthetic-driving-riders): 1,399 frames (1,259 train,
+  140 validation, split by scenario), 16,111 annotations, exact instance masks, a Cityscapes class map and metric
+  depth per frame, riders and bicycles as separate classes, day and night, several weather conditions. A public
+  quickstart notebook is at https://www.kaggle.com/code/evanpetersen919/vantagecv-quickstart.
+- Not included: LiDAR scans, 3D boxes, calibration files, model weights, any real-world image.
+- Draft terms (attribution; perception models permitted; no use in datasets utilized by, or as training inputs
+  to, generative AI programs) and notices ship with the dataset. They have not been reviewed by counsel.
+
+**Packaging**
+
+- ``bin/package_dataset.py`` gained ``--profile riders`` (rider, bike and motor classes through labels, class table
+  and card) and ``--images-only`` (no ``box3d``, ``kitti_P2`` or KITTI folder); the card and terms were rewritten.
+
+**Licensing record**
+
+- ``LICENSING.md`` has a dated research pass: Fab EULA Section 16(l) read on the live page, the KITTI terms and
+  the repository files derived from it, Rocketbox's relicensing history, Kaggle's terms, precedent datasets
+  built from Unreal assets (PUG, MatrixCity), and a consolidated list of questions for counsel.
+
 2.0 -- 2026-10-13
 -----------------
 
