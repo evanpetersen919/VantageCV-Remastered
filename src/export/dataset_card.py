@@ -14,7 +14,7 @@ from typing import Any, Dict
 import numpy as np
 from PIL import Image
 
-from src.evaluation.class_maps import OUR_CLASSES
+from src.evaluation.class_maps import DEFAULT_PROFILE, ClassProfile
 from src.ground_truth.semantic_classes import CLASS_NAMES
 
 MIT_TEXT = """MIT License
@@ -44,20 +44,47 @@ These terms apply to the images, annotations, depth maps and class maps in this 
 1. **Use.** You may use, copy, modify and redistribute the dataset, including for research and for
    commercial work, provided you keep this file and `NOTICES.md` with it and credit the dataset
    (see the citation in `README.md`).
-2. **No generative AI.** You may not use the dataset, or anything derived from its images, to
-   train, develop or feed a generative AI program, meaning a system designed to automate the
-   generation of, or aid in the creation of, new content (for example text-to-image, image-to-image
-   or video generation models). The images were rendered from Unreal Engine City Sample content,
-   whose licence carries a restriction of this kind.
+2. **No generative AI.** You may not use the dataset, or anything derived from it, in datasets
+   utilized by, in the development of, or as training inputs to a generative AI program, meaning
+   artificial intelligence, machine learning, deep learning, neural networks or similar
+   technologies designed to automate the generation of or aid in the creation of new content,
+   including audio, visual or text-based content (for example text-to-image, image-to-image or
+   video generation models). The images were rendered from Unreal Engine City Sample content, whose
+   licence (Fab Standard License, Fab End User License Agreement of 1 October 2024, Section 16(l))
+   carries a restriction of this kind.
 3. **Perception models are fine.** Training and evaluating non-generative models (object
-   detection, segmentation, depth estimation and the like) is permitted.
-4. **No endorsement.** Nothing here is endorsed by Epic Games, Microsoft or anyone else named in
+   detection, segmentation, depth estimation and the like) is permitted. The same licence text
+   describes programs that "generate tags to classify visual input content" as not being
+   generative AI programs.
+4. **Third-party assets.** Nothing here grants any right in the Unreal Engine, in City Sample or in
+   any asset used to render the images; those remain subject to their own licences.
+5. **No endorsement.** Nothing here is endorsed by Epic Games, Microsoft or anyone else named in
    `NOTICES.md`.
-5. **No warranty.** The dataset is provided "as is", without warranty of any kind.
+6. **No warranty.** The dataset is provided "as is", without warranty of any kind.
+"""
+
+NOTICES = """# Notices
+
+* **Unreal Engine and City Sample** are the property of Epic Games, Inc. The frames were rendered
+  with Unreal Engine 5.4 from the City Sample project's buildings, road kit, vehicles and props
+  (including Quixel Megascans items bundled with it), obtained from Fab under the Fab Standard
+  License (https://www.fab.com/listings/4898e707-7855-404b-af0e-a505ee690e68). No Epic asset files
+  are included in this dataset, only rendered images, maps and annotations. This project is not
+  affiliated with or endorsed by Epic Games.
+
+  Unreal Engine, Copyright 1998 - 2026, Epic Games, Inc. All rights reserved. Unreal is a trademark
+  or registered trademark of Epic Games, Inc. in the United States of America and elsewhere.
+* **Pedestrians and riders** are Microsoft Rocketbox avatars, used under the MIT License below.
+* **Vegetation textures and scans** (leaf clusters, bark, grass, street trees and shrubs) are
+  CC0 1.0 material from ambientCG (https://ambientcg.com) and Poly Haven (https://polyhaven.com).
+* No real-world images or data from any other dataset are included, and no model weights.
+
+## Microsoft Rocketbox (MIT)
+
 """
 
 
-def _stats(out: Path) -> Dict[str, Any]:
+def _stats(out: Path, profile: ClassProfile = DEFAULT_PROFILE) -> Dict[str, Any]:
     """Counts measured from the release folder."""
     images, annotations = [], []
     for name in ("train", "val"):
@@ -68,7 +95,7 @@ def _stats(out: Path) -> Dict[str, Any]:
             image["split"] = name
         images += coco["images"]
         annotations += coco["annotations"]
-    per_class = Counter(OUR_CLASSES[a["category_id"]] for a in annotations)
+    per_class = Counter(profile.classes[a["category_id"]] for a in annotations)
     shares: Counter[int] = Counter()
     sample = images[:: max(1, len(images) // 100)]
     for image in sample:
@@ -96,41 +123,87 @@ def _stats(out: Path) -> Dict[str, Any]:
     }
 
 
+def _counts_text(counts: Dict[str, int]) -> str:
+    """``{'day': 3, 'night': 2}`` as ``day 3, night 2``, largest first."""
+    return ", ".join(f"{k} {v:,}" for k, v in sorted(counts.items(), key=lambda x: -x[1]))
+
+
 def _table(rows: Dict[str, Any]) -> str:
     return "\n".join(f"| {key} | {value} |" for key, value in rows.items())
 
 
-def write_card(out: Path, manifest_path: Path, batch_name: str) -> Dict[str, Any]:
-    """Write ``README.md``, ``DATASET_TERMS.md`` and ``NOTICES.md`` into ``out``; returns the stats."""
-    stats = _stats(out)
+# the generator's internal category ids, as keyed in the annotation policy's max_distance_m
+_POLICY_NAMES = {"person": "6", "rider": "7", "bike": "8", "car": "2", "truck": "4", "bus": "5"}
+
+
+def write_card(  # pylint: disable=too-many-locals
+    out: Path,
+    manifest_path: Path,
+    batch_name: str,
+    profile: ClassProfile = DEFAULT_PROFILE,
+    images_only: bool = False,
+) -> Dict[str, Any]:
+    """Write ``README.md``, ``DATASET_TERMS.md`` and ``NOTICES.md`` into ``out``; returns the stats.
+
+    ``images_only`` describes a release with no 3D boxes, calibration or KITTI folder.
+    """
+    stats = _stats(out, profile)
     policy = json.loads(manifest_path.read_text(encoding="utf-8")).get("annotation_policy", {})
     distances = policy.get("max_distance_m", {})
     cutoffs = {
-        "person": distances.get("6"),
-        "car": distances.get("2"),
-        "bus": distances.get("5"),
-        "truck": distances.get("4"),
+        name: distances.get(key)
+        for name, key in _POLICY_NAMES.items()
+        if name in profile.classes.values() or name == "person"
     }
     width, height = stats["size"]
     classes = "\n".join(
         f"| {c['id']} | {c['name']} | {tuple(c['color_rgb'])} |"
         for c in json.loads((out / "classes.json").read_text(encoding="utf-8"))["semantic_classes"]
     )
+    cutoffs_text = ", ".join(f"{name} {metres:g} m" for name, metres in cutoffs.items() if metres)
+    empty = [n for n in profile.classes.values() if n not in stats["per_class"]]
+    empty_note = (
+        f" The class{'es' if len(empty) > 1 else ''} {', '.join(empty)} "
+        f"{'have' if len(empty) > 1 else 'has'} no instances in this batch."
+        if empty
+        else ""
+    )
     shares_text = ", ".join(f"{name} {share:.1f}%" for name, share in stats["class_shares"].items())
+    object_names = ", ".join(profile.classes[c] for c in profile.class_order)
+    three_d_row = (
+        ""
+        if images_only
+        else "| 3D boxes | `box3d` per object, `kitti/` | KITTI-convention boxes in a gravity-aligned camera frame, with `kitti_P2` per image |\n"
+    )
+    kitti_layout = (
+        ""
+        if images_only
+        else "kitti/label_2  kitti/calib  kitti/ImageSets               (KITTI ids are the image ids; images are in images/)\n"
+    )
+    riders_note = (
+        "Riders on bicycles (rider and bike are separate classes) are included in this batch."
+        if "rider" in profile.classes.values()
+        else "Adults only as pedestrians (no children, riders, bicycles or motorcycles)."
+    )
+    geometry_note = (
+        "**No 3D boxes, camera calibration, point clouds or geometry files are included**, only "
+        "rendered images, maps and 2D annotations."
+        if images_only
+        else "No LiDAR or radar."
+    )
     card = f"""# VantageCV synthetic urban driving dataset ({batch_name})
 
 **{stats['images']:,} forward-looking driving frames** ({width}x{height}, one camera, vertical field of
 view {stats['fov']:.2f} degrees) rendered in Unreal Engine 5.4 from procedurally generated city
-scenes, with **exact** per-pixel annotations taken from the engine itself:
+scenes, with **exact** per-pixel annotations taken from the engine itself. Classes: {object_names}.
 
 | Annotation | Files | What it is |
 |---|---|---|
-| 2D boxes | `annotations/instances_*.json`, `labels/` | COCO and YOLO boxes of person, car, bus, truck, tight around the visible pixels |
+| 2D boxes | `annotations/instances_*.json`, `labels/` | COCO and YOLO boxes of {object_names}, tight around the visible pixels |
 | Instance masks | `annotations/*.json` (`mask_rle`), `instance/` | the visible pixels of each object, run-length encoded and as 16-bit PNGs |
 | Polygons | `annotations/*.json` (`segmentation`), `labels_seg/` | outlines traced along those pixels, one polygon per visible part |
 | Visibility | `visibility_fraction`, `truncation` per object | share of the object that is visible, and cut by the frame edge |
-| 3D boxes | `box3d` per object, `kitti/` | KITTI-convention boxes in a gravity-aligned camera frame, with `kitti_P2` per image |
-| Class map | `semantic/` | full-scene class per pixel (below), 8-bit PNG, Cityscapes label ids |
+{three_d_row}| Class map | `semantic/` | full-scene class per pixel (below), 8-bit PNG, Cityscapes label ids |
 | Depth | `depth/` | metric depth per pixel, 16-bit PNG: metres x 256 along the viewing axis, 0 = no surface |
 | Conditions | per image in the COCO files | time of day, weather, season, camera pose, hood row |
 
@@ -143,8 +216,9 @@ appears on both sides). {stats['annotations']:,} object annotations.
 |---|---|
 {_table({k: f'{v:,}' for k, v in stats['per_class'].items()})}
 
-Objects are labelled out to a per-class distance in metres, {cutoffs}. About
-{stats['persons_per_image']:.1f} persons per image. Time of day {stats['time_of_day']}; weather {stats['weather']}.
+Objects are labelled out to a per-class distance: {cutoffs_text}. About
+{stats['persons_per_image']:.1f} persons per image. Time of day: {_counts_text(stats['time_of_day'])}.
+Weather: {_counts_text(stats['weather'])}.{empty_note}
 About {100 * stats['hood_share']:.0f}% of the frames have the ego car's hood painted across the bottom;
 labels and maps treat it as `ego vehicle`.
 
@@ -166,8 +240,8 @@ Each frame is rendered, then the game is asked for the scene's depth and for eac
 or surfaces on its own. A pixel belongs to an object where the object's own depth equals the scene's
 depth (nothing nearer hides it). No proxy shapes, projections or hulls are involved. Checks run on
 every release: class map against the instance masks (100% agreement), polygons against masks
-(IoU about 0.997 for persons), depth against independent 3D boxes, and a validation that every
-file exists and every class id is known (`bin/package_dataset.py`).
+(IoU about 0.997 for persons), and a validation that every file exists and every class id is known
+(`bin/package_dataset.py`).
 
 ## Layout
 
@@ -175,8 +249,7 @@ file exists and every class id is known (`bin/package_dataset.py`).
 images/  semantic/  depth/  instance/  instance_table/
 annotations/instances_train.json  annotations/instances_val.json
 labels/  labels_seg/  train.txt  val.txt  data.yaml      (YOLO; paths relative to this folder)
-kitti/label_2  kitti/calib  kitti/ImageSets               (KITTI ids are the image ids; images are in images/)
-classes.json  MANIFEST.json  README.md  DATASET_TERMS.md  NOTICES.md
+{kitti_layout}classes.json  MANIFEST.json  README.md  DATASET_TERMS.md  NOTICES.md
 ```
 
 ```python
@@ -199,13 +272,14 @@ segmentation copy `labels_seg/` over `labels/`).
 ## What this is not
 
 * **Synthetic.** The images look rendered. Models trained on them need real data too; in the
-  project's own experiments a 512-image supplement raised detection AP on real photographs by about
-  3 points when added to a quarter of BDD100K, and the gain is mostly from persons (details in the
-  project repository, `EXPERIMENT_LOG.md`). It is not a replacement for real footage.
-* **Narrow.** One town style (City Sample's buildings and vehicles), one camera, adults only as
-  pedestrians (no children, riders, bicycles or motorcycles), no traffic signs beyond a no-parking
-  sign, no lane-level semantics, no LiDAR or radar. Objects are labelled only out to the distances
-  above and above the minimum box size ({policy.get('min_box_width_px', 4):.0f} x {policy.get('min_box_height_px', 8):.0f} px), as in the real benchmarks.
+  project's own experiments, synthetic images added to 460 real BDD100K images raised detection AP
+  on real photographs from 18.2 to 22.9, and 1,000 synthetic rider-and-bicycle images raised rider
+  and bike AP from 8.0 to 12.9 (about half of what real images of the same classes gave); details in
+  the project repository, `EXPERIMENT_LOG.md`. It is not a replacement for real footage.
+* **Narrow.** One town style (City Sample's buildings and vehicles), one camera. {riders_note}
+  No traffic signs beyond a no-parking sign, no lane-level semantics. {geometry_note} Objects are
+  labelled only out to the distances above and above the minimum box size
+  ({policy.get('min_box_width_px', 4):.0f} x {policy.get('min_box_height_px', 8):.0f} px), as in the real benchmarks.
 * **Polygons have no holes.** A gap enclosed by an arm and a torso is covered by the outer
   polygon; `mask_rle` and `instance/` keep it exact.
 * **Depth range.** 0 to about 256 m at 1/256 m resolution; farther surfaces read 255.99.
@@ -216,28 +290,12 @@ segmentation copy `labels_seg/` over `labels/`).
 
 ## Terms, notices, citation
 
-`DATASET_TERMS.md` (a draft, not yet reviewed by counsel) and `NOTICES.md` (Epic Games and
-Microsoft Rocketbox attributions) apply. Code, tools and the experiment log:
+`DATASET_TERMS.md` (a draft, not yet reviewed by counsel) and `NOTICES.md` (Epic Games, Microsoft
+Rocketbox and CC0 source attributions) apply. Code, tools and the experiment log:
 https://github.com/evanpetersen919/VantageCV-V2 . Cite as: Petersen, E., VantageCV Remastered:
 Synthetic AV Dataset Generator, 2026 (see `CITATION.cff` in the repository).
 """
     (out / "README.md").write_text(card, encoding="utf-8")
     (out / "DATASET_TERMS.md").write_text(TERMS, encoding="utf-8")
-    (out / "NOTICES.md").write_text(
-        """# Notices
-
-* **Unreal Engine and City Sample** are the property of Epic Games, Inc. The frames were rendered
-  with Unreal Engine 5.4 from the City Sample project's buildings, road kit, vehicles and props
-  (including Quixel Megascans items bundled with it). No Epic asset files are included in this
-  dataset, only rendered images and annotations. This project is not affiliated with or endorsed by
-  Epic Games.
-* **Pedestrians** are Microsoft Rocketbox avatars, used under the MIT License below.
-* No real-world images or data from any other dataset are included.
-
-## Microsoft Rocketbox (MIT)
-
-"""
-        + MIT_TEXT,
-        encoding="utf-8",
-    )
+    (out / "NOTICES.md").write_text(NOTICES + MIT_TEXT, encoding="utf-8")
     return stats

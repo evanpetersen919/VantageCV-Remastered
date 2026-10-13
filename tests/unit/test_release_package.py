@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
+from src.evaluation.class_maps import RIDER_PROFILE
 from src.export.dataset_card import write_card
 from src.export.release_package import build_package, validate_package, yolo_segment_lines
 
@@ -136,3 +137,37 @@ def test_dataset_card_states_measured_counts_terms_and_notices(tmp_path: Path) -
     assert "DRAFT" in (out / "DATASET_TERMS.md").read_text(encoding="utf-8")
     notices = (out / "NOTICES.md").read_text(encoding="utf-8")
     assert "Copyright (c) 2020 Microsoft" in notices and "Epic Games" in notices
+
+
+def test_images_only_package_with_rider_profile_has_no_3d_data(  # pylint: disable=too-many-locals
+    tmp_path: Path,
+) -> None:
+    source = _make_source(tmp_path / "source")
+    for split in ("train", "val"):
+        path = source / f"{split}.json"
+        coco = json.loads(path.read_text(encoding="utf-8"))
+        for annotation in coco["annotations"]:
+            annotation["box3d"] = {"location": [0.0, 0.0, 10.0]}
+            annotation["category_id"] = 10  # rider
+        for image in coco["images"]:
+            image["kitti_P2"] = [0.0] * 12
+        path.write_text(json.dumps(coco), encoding="utf-8")
+    out = tmp_path / "release"
+    build_package(source, out, link=False, profile=RIDER_PROFILE, strip_3d=True)
+    written = json.loads((out / "annotations" / "instances_train.json").read_text(encoding="utf-8"))
+    assert all("box3d" not in a for a in written["annotations"])
+    assert all("kitti_P2" not in i for i in written["images"])
+    classes = json.loads((out / "classes.json").read_text(encoding="utf-8"))
+    expected = [RIDER_PROFILE.classes[c] for c in RIDER_PROFILE.class_order]
+    assert [c["name"] for c in classes["object_categories"]] == expected
+    names = (out / "data.yaml").read_text(encoding="utf-8")
+    assert "6: rider" in names and "1: bike" in names
+    assert not validate_package(out)
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"annotation_policy": {}}), encoding="utf-8")
+    stats = write_card(out, manifest, "riders", profile=RIDER_PROFILE, images_only=True)
+    assert stats["per_class"] == {"rider": 2}
+    card = (out / "README.md").read_text(encoding="utf-8")
+    assert "No 3D boxes, camera calibration" in card and "kitti/label_2" not in card
+    terms = (out / "DATASET_TERMS.md").read_text(encoding="utf-8")
+    assert "generate tags to classify visual input content" in terms

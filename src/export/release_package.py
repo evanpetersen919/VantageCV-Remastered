@@ -25,8 +25,8 @@ from typing import Any, Dict, List, Sequence
 import numpy as np
 from PIL import Image
 
-from src.evaluation.class_maps import OUR_CLASSES
-from src.evaluation.yolo_export import CLASS_ORDER, _label_lines
+from src.evaluation.class_maps import DEFAULT_PROFILE, ClassProfile
+from src.evaluation.yolo_export import _label_lines
 from src.ground_truth.semantic_classes import CLASS_NAMES, PALETTE
 from src.orchestration.semantic_labels import DEPTH_SCALE
 
@@ -67,7 +67,7 @@ def yolo_segment_lines(
     return lines
 
 
-def _write_labels(out: Path, name: str, coco: Dict[str, Any]) -> None:
+def _write_labels(out: Path, name: str, coco: Dict[str, Any], class_order: Sequence[int]) -> None:
     """YOLO detection and segmentation labels plus the relative list file of one split."""
     by_image: Dict[int, List[Dict[str, Any]]] = {}
     for annotation in coco["annotations"]:
@@ -76,8 +76,8 @@ def _write_labels(out: Path, name: str, coco: Dict[str, Any]) -> None:
     for image in coco["images"]:
         stem = Path(image["file_name"]).stem
         annotations = by_image.get(image["id"], [])
-        detect = _label_lines(image, annotations, CLASS_ORDER)
-        segments = yolo_segment_lines(image, annotations, CLASS_ORDER)
+        detect = _label_lines(image, annotations, class_order)
+        segments = yolo_segment_lines(image, annotations, class_order)
         for folder, lines in (("labels", detect), ("labels_seg", segments)):
             (out / folder).mkdir(parents=True, exist_ok=True)
             (out / folder / f"{stem}.txt").write_text(
@@ -87,12 +87,12 @@ def _write_labels(out: Path, name: str, coco: Dict[str, Any]) -> None:
     (out / f"{name}.txt").write_text("\n".join(listing) + "\n", encoding="utf-8")
 
 
-def class_table() -> Dict[str, Any]:
+def class_table(profile: ClassProfile = DEFAULT_PROFILE) -> Dict[str, Any]:
     """Object categories, semantic classes with colours, and how depth is stored."""
     return {
         "object_categories": [
-            {"id": cid, "name": OUR_CLASSES[cid], "yolo_index": index}
-            for index, cid in enumerate(CLASS_ORDER)
+            {"id": cid, "name": profile.classes[cid], "yolo_index": index}
+            for index, cid in enumerate(profile.class_order)
         ],
         "semantic_classes": [
             {"id": cid, "name": CLASS_NAMES[cid], "color_rgb": list(PALETTE[cid])}
@@ -113,8 +113,19 @@ def _checksum(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def build_package(source: Path, out: Path, link: bool = True) -> Dict[str, Any]:
+def build_package(
+    source: Path,
+    out: Path,
+    link: bool = True,
+    profile: ClassProfile = DEFAULT_PROFILE,
+    strip_3d: bool = False,
+) -> Dict[str, Any]:
     """Write images, maps, COCO, YOLO labels, classes and manifest of the release folder ``out``.
+
+    ``profile`` supplies the object classes and their YOLO order (``DEFAULT_PROFILE`` is person,
+    car, bus, truck; ``RIDER_PROFILE`` adds bike, motor and rider). With ``strip_3d`` the written
+    COCO files carry no ``box3d`` per object and no ``kitti_P2`` per image (the images-only
+    release).
 
     KITTI and instance-mask folders come from the ``bin/export_kitti.py`` and
     ``bin/export_masks.py`` functions, which ``bin/package_dataset.py`` calls afterwards.
@@ -129,20 +140,25 @@ def build_package(source: Path, out: Path, link: bool = True) -> Dict[str, Any]:
             for key in ("file_name", "semantic_file", "depth_file"):
                 if key in image:
                     _place(source / image[key], out / image[key], link)
-        coco["semantic_classes"] = class_table()["semantic_classes"]
-        coco["depth"] = class_table()["depth"]
+        if strip_3d:
+            for annotation in coco["annotations"]:
+                annotation.pop("box3d", None)
+            for image in coco["images"]:
+                image.pop("kitti_P2", None)
+        coco["semantic_classes"] = class_table(profile)["semantic_classes"]
+        coco["depth"] = class_table(profile)["depth"]
         target = out / "annotations" / f"instances_{name}.json"
         target.write_text(json.dumps(coco), encoding="utf-8")
         files[f"annotations/instances_{name}.json"] = _checksum(target)
-        _write_labels(out, name, coco)
+        _write_labels(out, name, coco, profile.class_order)
         counts[name] = {"images": len(coco["images"]), "annotations": len(coco["annotations"])}
     (out / "data.yaml").write_text(
         "train: train.txt\nval: val.txt\nnames:\n"
-        + "\n".join(f"  {i}: {OUR_CLASSES[cid]}" for i, cid in enumerate(CLASS_ORDER))
+        + "\n".join(f"  {i}: {profile.classes[cid]}" for i, cid in enumerate(profile.class_order))
         + "\n",
         encoding="utf-8",
     )
-    (out / "classes.json").write_text(json.dumps(class_table(), indent=1), encoding="utf-8")
+    (out / "classes.json").write_text(json.dumps(class_table(profile), indent=1), encoding="utf-8")
     return {"counts": counts, "sha256": files}
 
 

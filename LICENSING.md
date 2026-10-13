@@ -179,6 +179,11 @@ licences and no right in them is granted."
 Net: the clause text, Epic's own description of the tag and two published Unreal-based datasets all point the same way (a
 detector dataset with a no-generative-AI term). Nothing found is an authoritative confirmation, and nothing found contradicts it.
 
+**Owner's check of the City Sample listing, 2026-10-13.** Licence: Standard License. AI line: "no AI" (the NoAI tag). The
+owner downloaded City Sample on 2026-09-16 (the `CitySample_5.4` folder; the 5.7 folder dates from 2025-12-27, so the first
+acquisition is no later than that). Both dates are after the Fab EULA's "Last updated: October 1st, 2024" text and after the
+tag's introduction (2023-02-20), so the October 2024 text applies and the content is NoAI Content under 16(l)(i).
+
 **Questions for counsel, after this pass**
 1. Do depth, class, mask, 3D-box and LiDAR outputs fall inside the distribution right for "images created using Content", or are
    they derived data under Fab 6(b)(i)?

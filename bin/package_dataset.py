@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
+from src.evaluation.class_maps import PROFILES
 from src.export.dataset_card import write_card
 from src.export.release_package import build_package, validate_package
 
@@ -38,9 +39,22 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--name", default="v1", help="name used in the dataset card title")
     parser.add_argument("--copy", action="store_true", help="copy files instead of hard-linking")
+    parser.add_argument("--profile", choices=sorted(PROFILES), default="default")
+    parser.add_argument(
+        "--images-only",
+        action="store_true",
+        help="no 3D boxes, kitti_P2 or KITTI folder: images, 2D labels, masks and maps only",
+    )
     args = parser.parse_args()
-    manifest = build_package(args.source, args.out, link=not args.copy)
-    kitti = _load("export_kitti").export_kitti(args.source, args.out / "kitti")
+    profile = PROFILES[args.profile]
+    manifest = build_package(
+        args.source, args.out, link=not args.copy, profile=profile, strip_3d=args.images_only
+    )
+    kitti = (
+        0
+        if args.images_only
+        else _load("export_kitti").export_kitti(args.source, args.out / "kitti")
+    )
     scratch = args.out / "_masks_tmp"
     count = _load("export_masks").export_masks(args.source, scratch)
     for folder in ("instance", "instance_table"):
@@ -48,7 +62,13 @@ def main() -> None:
     shutil.rmtree(scratch, ignore_errors=True)
     manifest["kitti"], manifest["instance_masks"] = kitti, count
     (args.out / "MANIFEST.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
-    write_card(args.out, args.source / "manifest.json", args.name)
+    write_card(
+        args.out,
+        args.source / "manifest.json",
+        args.name,
+        profile=profile,
+        images_only=args.images_only,
+    )
     problems = validate_package(args.out)
     print(json.dumps(manifest["counts"]), f"| kitti {kitti} | instance masks {count}")
     print(f"{len(problems)} problems" + (":" if problems else " (clean)"))
