@@ -1,7 +1,7 @@
 # Licensing record
 
 What each asset class in VantageCV comes from, what its licence says (quoted where the text was read),
-what is settled, and what is not. This is a record of evidence, **not legal advice**. Updated 2026-10-08.
+what is settled, and what is not. This is a record of evidence, **not legal advice**. Updated 2026-10-13 (research pass added).
 Dated working notes and results are in [`EXPERIMENT_LOG.md`](EXPERIMENT_LOG.md).
 
 ## Summary
@@ -10,7 +10,7 @@ Dated working notes and results are in [`EXPERIMENT_LOG.md`](EXPERIMENT_LOG.md).
 |---|---|---|---|
 | This repository's code | MIT ([`LICENSE`](LICENSE)) | Settled | everything |
 | Unreal Engine 5.4 | Unreal Engine EULA | Engine use settled; see crowd row for the one clause that concerns training | rendering |
-| City Sample vehicles, buildings, road kit, props | Epic Content License Agreement and Fab Standard License (EULA text read except Section 16(l)); Fab page tag "Allows usage with AI: No" | **Open.** Text read as limited to generative AI; Epic has not confirmed | all batches |
+| City Sample vehicles, buildings, road kit, props | Epic Content License Agreement and Fab Standard License (EULA text read, 16(l) on 2026-10-13 via a text renderer); Fab page tag "Allows usage with AI: No" | **Open.** Text read as limited to generative AI; Epic has not confirmed | all batches |
 | City Sample crowd characters (adapted from MetaHumans) | Unreal Engine EULA, MetaHuman clause | **Unresolved.** Not limited to generative AI. **Not used in new work since 2026-10-08** | batches up to `train_v12e` |
 | Megascans / Quixel items in the project (curbs, bollards, hydrants, barriers, street furniture) | Governed by the same two agreements as City Sample: Fab Standard License (Fab EULA) and, for legacy Epic-era items, the Epic Content License Agreement; no Megascans-specific AI clause found | Same status as City Sample (NoAI wording is generative-only; Epic unconfirmed) | all batches |
 | Vehicle Variety Pack Vol. 2 box truck (Fab) | Fab Standard License; "Allows usage with AI: No" | Same reading as City Sample vehicles; unconfirmed | only the `v11` truck experiment |
@@ -18,12 +18,110 @@ Dated working notes and results are in [`EXPERIMENT_LOG.md`](EXPERIMENT_LOG.md).
 | BDD100K (25% of every arm's training images; all evaluation) | UC Regents licence: free for educational, research and not-for-profit use; commercial use only for BDD/BAIR Commons members (text read from a mirror) | Research use fine; **commercial use of anything trained on it needs a separate licence** | training, evaluation |
 | Cityscapes (evaluation only) | Non-commercial; abstract derivatives such as trained models may be distributed (official page read) | Fine for evaluation; no Cityscapes data in anything published | evaluation |
 | RealDriveSim (comparison arms only) | CC BY 4.0 (official project page read) | Fine with attribution; not part of any release | comparison arms |
+| KITTI (statistics, ring table and split lists derived from it; no KITTI data committed) | CC BY-NC-SA 3.0 plus "academic use only" (official page, 2026-10-13) | **Open.** Whether measured statistics and the split lists are adaptations under the licence or fall under EU database rights; nothing was shipped as KITTI data | LiDAR study, `configs/kitti_*` |
 | ultralytics (YOLO training code) | AGPL-3.0 (LICENSE file read); Ultralytics states trained models are AGPL-3.0 too unless an Enterprise License is bought | **A blocker for releasing weights under a non-AGPL licence**; the repository code that imports it is also affected | training |
 
 **Published so far:** MIT code, rendered images and videos, results and this log. **Not published:** datasets and trained
 weights. **Goal (owner, 2026-10-08): publish the dataset on Kaggle; trained weights are not going to be published.** What that
 requires is in the section "Publishing the dataset on Kaggle" below; the weights-only rows (ultralytics, BDD100K's commercial
 restriction) stop mattering for a dataset-only release.
+
+## Research pass of 2026-10-13 (four parallel reads; not legal advice)
+
+Sources are named per item; "renderer" means a third-party text renderer of a JavaScript page (Epic's own pages return HTTP
+403 to automated fetches), so the quotes below should be re-read in a browser before anything relies on them.
+
+**1. Fab EULA Section 16(l) is read, and it carves out classifiers.** From `fab.com/eula`, header "Last updated: October 1st,
+2024" (renderer): "Content that is tagged with "NoAI" in the Epic Marketplace at the time of your Transaction is "NoAI
+Content." Under a Standard License, you may not use NoAI Content (a) in datasets utilized by Generative AI Programs, (b) in the
+development of Generative AI Programs, or (c) as training inputs to Generative AI Programs." ... ""Generative AI Programs" means
+artificial intelligence, machine learning, deep learning, neural networks, or similar technologies designed to automate the
+generation of or aid in the creation of new content, including but not limited to audio, visual, or text-based content. Programs
+do not meet this definition of Generative AI Programs where they, by non-limiting example, (a) solely operate on the original
+content; (b) generate tags to classify visual input content; or (c) generate instructions to arrange existing content, without
+creating new content." Reading: an object detector produces tags and boxes and creates no content, so it fits (b). The list is
+"by non-limiting example", and Epic has not confirmed it.
+
+**2. Content License Agreement Section 17** (fetched from `unrealengine.com/en-US/eula/content`) has the same purpose-limited
+definition **without** the carve-out examples. Differences that matter: CLA Section 16(b) says amended terms apply to Licensed
+Content "that you downloaded under any prior version of this Agreement" (Fab Section 7(a) keeps the terms at acquisition), and Fab
+16(l) ties NoAI status to the tag "at the time of your Transaction". Whether City Sample was tagged when it was acquired, and
+under which agreement it came, is not recorded.
+
+**3. Epic's own statements on the tag.** Fab developer documentation: "The NoAI meta tag indicates that an asset must not be used
+for generative AI data collection." Staff announcement of 2023-02-20 (forum, summarised): the tag "signals to generative AI
+programs that the product is not for generative AI data collection". No Epic statement on object detection, perception or
+simulation datasets was found.
+
+**4. Non-image outputs are open.** Fab 4(b) and CLA 3(b) allow distributing "images created using Content" and rendered linear
+media; depth maps, class maps, masks, exact 3D boxes and LiDAR point clouds are not named. Fab 6(b)(i) also bars attempts to
+"derive source code or data from the Content", which Epic could read against geometry-derived labels (inference).
+
+**5. Unreal Engine EULA.** An older undated PDF allows royalty-free distribution of "rendered video files ... or images created
+using the Engine Code" and requires a credits notice ("Unreal Engine, Copyright 1998 - xxxx, Epic Games, Inc. All rights
+reserved."). Epic's change log (secondary) describes a later update adding a ban on using the Licensed Technology "as a training
+input or prompt-based input into any Generative AI Program". The current EULA text was not read.
+
+**6. KITTI** (`cvlibs.net/datasets/kitti`, read 2026-10-13): all datasets "published under the Creative Commons
+Attribution-NonCommercial-ShareAlike 3.0" licence, and the privacy section says "This dataset is made available for academic use
+only." Committed in this repository and derived from KITTI: `configs/kitti_derived_constants.json` (range caps, car-length
+percentile, pedestrian box size, class and range intensity histograms), `configs/kitti_beam_pattern.json` (ring elevations,
+per-ring fill), `configs/kitti_splits/train.txt` and `val.txt` (the standard split lists). No KITTI images or point clouds are
+committed. CC's own guidance: "Facts are not subject to copyright" and, for the 3.0 licences, "CC 3.0 license conditions do not
+apply to uses of data and databases that do not implicate copyright"; the licence text says nothing on database rights, and
+KITTI is a German (KIT) dataset, so sui generis database rights are a separate question. Virtual KITTI, which clones KITTI
+sequences, describes itself as "an Adaptation of the KITTI Vision Benchmark Suite" under the same licence. Risk by item: the
+format conventions (velodyne `.bin`, `label_2`, `calib`) low; the ring table low; the intensity histograms the closest to a
+derived data product; the split lists are KITTI's own selection, shipped in an MIT repository, and are easy to fetch instead.
+
+**7. Rocketbox** (`microsoft/Microsoft-Rocketbox`, read 2026-10-13). `LICENSE.md` is the standard MIT licence with no mention of
+ML. The GitHub API lists four commits for it: `a5ab3d5` and `ec8c809` (2020-03-13), `4a3f2c0` and `accbe42` (2020-11-17 01:00
+UTC, which is 2020-11-16 Pacific); commit `1eeb280`, cited earlier in this record, was not seen. Issue #24 (2026-08-01, no
+maintainer reply) asks whether the animation files fall under the MIT licence. No per-asset or photo-subject provenance is
+documented (the paper says textures came from "photographs of real people" that were "mixed and strongly modified").
+Microsoft's own wording stayed "free research and academic use". The WACV 2024 paper cited above (arXiv 2208.12763) is
+"Leveraging Synthetic Data to Learn Video Stabilization Under Adverse Conditions" (Kerim et al.); it names Rocketbox as its
+character library and states no licence for it.
+
+**8. Tools and CC0 sources.** Blender: its licence page says "What you create with Blender is your sole property" and its FAQ
+that its output "is considered program output, and the sole copyright of the user"; the GPL FAQ agrees, so the baked poses
+inherit Rocketbox's status, not the GPL. ambientCG and Poly Haven are CC0; Poly Haven states it is "still OK with people using
+our assets to train their AIs" (its Terms of Service separately bar scraping). ultralytics' own licence page (read): "All
+Ultralytics YOLO trained models fall under the AGPL-3.0 License by default"; only relevant if weights are published. OpenPCDet is
+Apache-2.0.
+
+**9. Kaggle and alternatives** (Kaggle pages read through a renderer). Terms: "you represent and warrant you have all rights
+necessary"; the acceptable-use policy lists uploading data that violates others' intellectual property; Section 9 grants "all
+other users" a licence to public submissions as the functionality allows; Kaggle may remove content on an allegation, and the
+uploader indemnifies Kaggle. The licence list has "Other (specified in description)", and custom terms live in the description
+only; no enforcement mechanism was found and no NoAI-specific rule. Hugging Face (gated datasets, `license: other` with a LICENSE
+file) and Zenodo (restricted access per requester, DOI, "non-military purposes only") are alternatives with explicit acceptance
+steps. Precedent: UrbanSyn adds a clause prohibiting "the use of generative AI technologies for reverse engineering any assets or
+creating content for stock media platforms"; MatrixCity (UE 5.0.3 on City Sample) is released CC BY-NC 4.0 with no NoAI note;
+Virtual KITTI and SYNTHIA are CC BY-NC-SA 3.0; the RAIL family uses a flow-down use restriction.
+
+**10. Draft wording, for counsel to confirm (not advice).** "This dataset may be used, copied and redistributed with attribution.
+Use for research and development of models that do not generate new content (for example detection, segmentation, depth,
+tracking, LiDAR perception) is permitted. You may not use this dataset, or any part of it, to train, fine-tune or develop, or
+supply as input to, any generative AI program, meaning AI designed to automate the generation of or aid in the creation of new
+content. You must include this condition in any redistribution. Underlying third-party assets remain subject to their own
+licences and no right in them is granted."
+
+**Questions for counsel, after this pass**
+1. Do depth, class, mask, 3D-box and LiDAR outputs fall inside the distribution right for "images created using Content", or are
+   they derived data under Fab 6(b)(i)?
+2. Does a detector clearly fall within the carve-outs of Fab 16(l), and does the CLA's lack of those examples change the answer
+   for content that came through the CLA?
+3. Which agreement governs City Sample as acquired, was it tagged at acquisition, and did accepting amended terms pull it under
+   CLA Section 17?
+4. Exposure if a third party trains a generative model on the published dataset despite a terms-of-use prohibition; does Kaggle's
+   Section 9 grant to other users conflict with a description-only licence?
+5. Rocketbox: does the MIT relicence cover every mesh, texture and animation given the research-only history and issue #24; does
+   MIT's "use" include ML training; do rendered avatars trigger the notice condition?
+6. KITTI: are measured statistics, the ring table and the split lists adaptations or extractions under CC BY-NC-SA 3.0 and EU
+   database law; does "academic use only" bind beyond the licence; may a dataset matched to KITTI be released under non-NC terms?
+7. Unreal Engine EULA: the current text on generative-AI training input and on credits for a dataset.
+8. BDD100K: the official terms (both official hosts failed on 2026-10-13: DNS error and an invalid certificate).
 
 ## Epic content (City Sample, Unreal Engine)
 
@@ -157,7 +255,7 @@ Pillow and numpy have no third-party origin and were replaced by the photographs
   License, "Copyright (c) 2020 Microsoft", no added terms, no mention of machine learning.
 - History (from the repository's git log): created 2020-03-13 with the **Microsoft Research License Terms**, granting use "for
   non-commercial, non-revenue generating, research purposes" and forbidding distribution of the Dataset. On 2020-11-16 (commits
-  `1eeb280`, `accbe42`) the paper's first author replaced it with the MIT License. The repository was archived 2026-10-02.
+  `4a3f2c0`, `accbe42` per the GitHub API listing of 2026-10-13; `1eeb280` was not seen) the paper's first author replaced it with the MIT License. The repository was archived 2026-10-02.
 - Paper (Gonzalez-Franco et al., Frontiers in Virtual Reality, 2020-11-03, DOI 10.3389/frvir.2020.561558, 13 days before the
   relicensing): the library is "publicly available for research and academic use".
 - Prior use by others: Kerim et al., WACV 2024 (arXiv 2208.12763), Section 4, uses "The Microsoft Rocketbox Avatar Library" for
@@ -209,7 +307,7 @@ for the tooling used, so the quotes above rest on the owner's paste. Corroborati
   datasets for, in the development of, or as inputs to Generative AI Programs, matching the owner's paste.
 - Fab EULA Section 6(b)(vii) points to Section 16(l) for the definitions of NoAI Content and Generative AI Programs. A forum post
   (Epic Developer Community, "AI image use") quotes a different Fab paragraph (when content counts as created with Generative AI
-  Programs), not the NoAI definition. **16(l) itself has not been read.** If it matches Content License Agreement Section 17's
+  Programs), not the NoAI definition. **16(l) was read on 2026-10-13 (research pass above); this paragraph is kept as the earlier record.** If it matches Content License Agreement Section 17's
   definition ("designed to automate the generation of or aid in the creation of new content"), a detector is outside it; that is
   an inference until the text is read.
 
@@ -247,7 +345,9 @@ for the tooling used, so the quotes above rest on the owner's paste. Corroborati
 
 ## Open items that need a person, not a search
 
-- Paste Fab EULA Section 16 in full (especially 16(l)) and Content License Agreement Sections 3 and 17 as they read now.
+- Re-read Fab EULA Section 16(l) and Content License Agreement Sections 3 and 17 in a browser (read 2026-10-13 only through a
+  renderer and curl; see the research pass).
+- Look up City Sample's NoAI tag status and agreement at the time of acquisition (purchase history).
 - Acceptance dates and the licence version shown in the Epic account for City Sample and the Vehicle Variety Pack.
 - Confirm the BDD100K licence on the official site (`doc.bdd100k.com` did not resolve; `bdd-data.berkeley.edu` failed its certificate
   check); read Ultralytics' license FAQ and Enterprise terms directly.
