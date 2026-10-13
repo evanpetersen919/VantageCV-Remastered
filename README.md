@@ -21,7 +21,8 @@ transfer to real data (BDD100K, Cityscapes, KITTI), including what didn't work.*
 | synthetic images added to 460 real BDD100K images ([results](#results)) | camera check: projected points against the engine's render | LiDAR scans in KITTI format with exact 3D boxes ([LiDAR](#lidar-new-in-20)) | strict mypy, pylint 10/10, CI on every push |
 
 **Dataset:** [VantageCV Synthetic Driving: Riders on Kaggle](https://www.kaggle.com/datasets/evanpetersen919/vantagecv-synthetic-driving-riders): 1,399 frames with exact masks,
-riders and bicycles, a class map and metric depth for every frame, with a quickstart notebook. Images and 2D labels
+riders and bicycles, a class map and metric depth for every frame, with a
+[quickstart notebook](https://www.kaggle.com/code/evanpetersen919/vantagecv-quickstart). Images and 2D labels
 only (no LiDAR or 3D geometry; see [`LICENSING.md`](LICENSING.md)).
 
 ## What you get
