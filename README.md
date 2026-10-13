@@ -102,11 +102,9 @@ exactly the same geometry. The sensor is matched to the KITTI Velodyne's field o
 *How a scan is made: the engine's depth image is read along 64 beams (81.6 degrees wide, 0.18 degree steps, up to
 80 m), and each return becomes a point. Colours are the engine's class map; boxes are the exact 3D labels.*
 
-![One synthetic LiDAR scan in three views: a bird's-eye view with 3D box footprints, the points over the camera frame coloured by class, and the points alone](docs/images/lidar_scan_views.jpg)
+![One LiDAR scan seen from behind and above, every point coloured by its distance from the sensor, from yellow for near through orange and magenta to purple for far, over faint range arcs at 10, 20, 40 and 60 metres](docs/images/lidar_range_view.jpg)
 
-*One frame, three views of the same 28,136 points: a bird's-eye view with the labelled boxes (left), the points over
-the camera frame, coloured by class (top right) and the points alone (bottom right). The parked cars line up with
-their boxes, and the ring spacing is the LiDAR's own.*
+*The whole scan as a range picture: the nearest points are bright yellow, the far buildings fade to purple, and the 64 beam rings lie on the road. A KITTI-profile frame; there are no class colours or boxes here, only distance.*
 
 | | |
 |---|---|
@@ -278,6 +276,7 @@ this path is used end-to-end (dataset generation, detector training, real-benchm
 ```bash
 PYTHONPATH=. python bin/visualize_lidar_scan.py --dataset live_dataset/kitti_run --frame 12 --pattern kitti --out lidar_viz
 PYTHONPATH=. python bin/render_lidar_explainer.py --dataset live_dataset/kitti_run --frame 12 --out lidar_how_it_works.gif   # the animation above
+PYTHONPATH=. python bin/render_lidar_range_still.py --dataset live_dataset/kitti_run --frame 12 --out lidar_range_view.jpg  # the range picture
 ```
 
 <details>
@@ -313,7 +312,7 @@ poetry run sphinx-build -b html docs docs/_build/html
 - Prepare: `split_dataset.py`, `export_yolo.py`, `audit_dataset.py`, `prepare_lidar_arms.py`
 - Train and score: `train_detector.py`, `evaluate_detector.py`, `analyze_lidar_followup.py`, `analyze_rider_study.py`
 - Diagnose: `gradcam_compare.py`, `audit_lidar_domain_gap.py`, `derive_beam_pattern.py`
-- Visualise: `visualize_lidar_scan.py`, `render_lidar_explainer.py`
+- Visualise: `visualize_lidar_scan.py`, `render_lidar_explainer.py`, `render_lidar_range_still.py`
 - Measure the real statistics the generator is fit to: the `measure_*.py` and `fit_*.py` scripts
 
 **Project records**

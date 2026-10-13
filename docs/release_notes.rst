@@ -15,8 +15,9 @@ A LiDAR sensor and cyclists, each with registered experiments, and an honest acc
   minimum-returns rule; ``configs/kitti_beam_pattern.json``).
 - A KITTI camera profile (``--profile kitti``: height 1.71 m, 1 degree pitch jitter) and the template
   ``urban_dense_v19_kitti.yaml`` (pedestrian density of KITTI).
-- Viewers: ``bin/visualize_lidar_scan.py`` (bird's-eye, camera overlay and 3D views) and
-  ``bin/render_lidar_explainer.py`` (the animation in the README).
+- Viewers: ``bin/visualize_lidar_scan.py`` (bird's-eye, camera overlay and 3D views),
+  ``bin/render_lidar_explainer.py`` (the animation in the README) and ``bin/render_lidar_range_still.py`` (the
+  range-coloured picture).
 - A cluster pipeline (``hpc/lidar/``): OpenPCDet PointPillars on KITTI's standard split, Slurm arms, job-local
   patches for a domain flag, a real-only paste database, class-conditioned reflectance and shadow removal.
 
