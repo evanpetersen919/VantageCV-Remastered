@@ -41,6 +41,34 @@ CONTRASTS: Tuple[Tuple[str, Sequence[Tuple[str, str]]], ...] = (
         (("B", "Ax3"), ("E0", "Ax3"), ("E1", "Ax3")),
     ),
 )
+# The improvement study (docs/lidar/improvement_preregistration.md): confirmatory test S4 - Astep.
+IMPROVEMENT_CONFIRMATORY = ("S4", "Astep")
+IMPROVEMENT_CONTRASTS: Tuple[Tuple[str, Sequence[Tuple[str, str]]], ...] = (
+    ("confirmatory and reference", (("S4", "Astep"), ("S4", "A"), ("S4", "B"), ("S4", "Ax3"))),
+    (
+        "H7 ring table, H8 dropout and noise, H9 minimum points",
+        (
+            ("S1", "E3a"),
+            ("S2", "S1"),
+            ("S3", "S1"),
+            ("S4", "S2"),
+            ("S4", "S3"),
+            ("S4", "E3a"),
+        ),
+    ),
+    ("H10 real-only ground-truth database", (("E3a_rdb", "E3a"), ("S4_rdb", "S4"))),
+    ("H11 domain flag", (("E4_flag", "E4"), ("E0i_flag", "E0i"))),
+    ("H12 matched steps", (("Astep", "A"), ("E1x3", "E1step"), ("E1step", "E1"), ("E1x3", "Ax3"))),
+    ("post hoc, not registered", (("B", "Astep"), ("E3a", "Astep"), ("S4_rdb", "Astep"))),
+)
+STUDIES = {
+    "followup": (CONTRASTS, CONFIRMATORY, "results/lidar_followup_analysis.json"),
+    "improvement": (
+        IMPROVEMENT_CONTRASTS,
+        IMPROVEMENT_CONFIRMATORY,
+        "results/lidar_improvement_analysis.json",
+    ),
+}
 ARM_NAMES = {
     "E0": "E",  # the first study's arm E is E0 in the follow-up chain
 }
@@ -71,14 +99,15 @@ def contrast(left: Dict[str, List[float]], right: Dict[str, List[float]]) -> Dic
     }
 
 
-def analyse(results: Path) -> Dict[str, Any]:
+def analyse(results: Path, study: str = "followup") -> Dict[str, Any]:
     """The whole analysis as a JSON-serialisable dictionary."""
-    names = sorted({arm for _, pairs in CONTRASTS for pair in pairs for arm in pair})
+    contrasts, confirmatory, _ = STUDIES[study]
+    names = sorted({arm for _, pairs in contrasts for pair in pairs for arm in pair})
     data = {arm: series(results, arm) for arm in names}
     groups: Dict[str, Any] = {}
-    for title, pairs in CONTRASTS:
+    for title, pairs in contrasts:
         groups[title] = {f"{a} - {b}": contrast(data[a], data[b]) for a, b in pairs}
-    left, right = CONFIRMATORY
+    left, right = confirmatory
     primary = groups["confirmatory and reference"][f"{left} - {right}"]["M"]
     guard = mean(data[left]["Car"]) - mean(data[right]["Car"])
     guard_holds = guard >= -GUARD_TOLERANCE_AP
@@ -124,9 +153,11 @@ def main() -> None:
     """Parse arguments, analyse, print and write."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n", maxsplit=1)[0])
     parser.add_argument("--results", type=Path, default=Path("results"))
-    parser.add_argument("--out", type=Path, default=Path("results/lidar_followup_analysis.json"))
+    parser.add_argument("--study", choices=sorted(STUDIES), default="followup")
+    parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
-    analysis = analyse(args.results)
+    analysis = analyse(args.results, args.study)
+    args.out = args.out or Path(STUDIES[args.study][2])
     print("\n".join(render(analysis)))
     args.out.write_text(json.dumps(analysis, indent=1), encoding="utf-8")
 

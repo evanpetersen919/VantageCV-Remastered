@@ -78,3 +78,14 @@ Stage 0 (recipe, no new data):
 - About 25 descriptive contrasts are uncorrected; the single confirmatory test is `S4 - Astep`.
 - Intensity stays 0 for synthetic frames in every stage 1 arm (sampled reflectance was refuted as implemented), so the
   synthetic domain remains perfectly separable by intensity; H11 tests whether that matters.
+
+## Result (2026-10-12)
+
+Full write-up: `docs/experiments/41_lidar-improvement-stages-0-and-1.md`; numbers in
+`results/lidar_improvement_analysis.json`.
+
+- **Confirmatory `S4 - Astep`: M -3.15 [-3.74, -2.55]**, all seeds negative, Car guard holds. Not supported.
+- H7 pre-training check met by the table (135 against the 130 threshold; dropout lowers it to 115.5); H7, H8, H9 are
+  unresolved in AP. H10 not supported. H11 supported (E4_flag - E4 pedestrian +9.4; E0i_flag - E0i +14.6). H12
+  supported: Astep - A +2.3 and E1x3 - E1step +2.4.
+- No amendments were made to the registered design.

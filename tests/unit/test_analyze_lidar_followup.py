@@ -64,3 +64,28 @@ def test_report_lists_every_group(tmp_path: Path) -> None:
     for title, _ in followup.CONTRASTS:
         assert title in text
     assert "CONFIRMATORY E4 - A" in text
+
+
+def _fill_improvement(root: Path, s4_shift: float) -> None:
+    names = {a for _, p in followup.IMPROVEMENT_CONTRASTS for pair in p for a in pair}
+    for seed in followup.SEEDS:
+        base = {"Car": 50.0, "Pedestrian": 30.0 + 0.2 * seed, "Cyclist": 25.0}
+        for arm in names:
+            shift = s4_shift if arm == "S4" else 0.0
+            _write(root, arm, seed, {k: v + shift for k, v in base.items()})
+
+
+def test_improvement_confirmatory_is_s4_against_astep(tmp_path: Path) -> None:
+    """The improvement study reads S4 - Astep; a uniform gain is supported."""
+    _fill_improvement(tmp_path, 2.0)
+    result = followup.analyse(tmp_path, "improvement")
+    assert result["confirmatory"]["test"] == "S4 - Astep"
+    assert result["confirmatory"]["supported"]
+
+
+def test_improvement_loss_is_not_supported(tmp_path: Path) -> None:
+    """A uniform drop for S4 puts the interval below 0."""
+    _fill_improvement(tmp_path, -3.0)
+    result = followup.analyse(tmp_path, "improvement")
+    assert result["confirmatory"]["interval"]["high"] < 0
+    assert not result["confirmatory"]["supported"]
