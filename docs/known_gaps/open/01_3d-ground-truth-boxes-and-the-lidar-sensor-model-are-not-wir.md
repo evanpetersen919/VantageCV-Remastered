@@ -1,14 +1,10 @@
-### [DEFERRED] 3D ground-truth boxes and the LiDAR sensor model are not wired into the live pipeline or export
-Every object already carries a real 3D box (center, dimensions, heading --
-`BoundingBox3D`) that drives occlusion ray-casting and 2D projection
-(`src/ground_truth/occlusion.py`, `bbox_2d.py`), and `src/sensors/lidar_model.py`
-implements a real ray-cast LiDAR point-cloud simulation against mesh triangles
-with its own spatial acceleration structure and tests -- but neither is called
-anywhere in `src/orchestration/` or `bin/`: no live-generated dataset produces
-point clouds, and the exported COCO annotations carry only the projected 2D
-box and segmentation polygon, never the 3D box fields. The intended future use
-is a 3D-detection-from-LiDAR task, where the already-computed 3D boxes are the
-natural label format -- deferred until that task actually starts, since
-exporting 3D boxes with no point clouds to pair them with would just be dead
-data in the schema.
+### [RESOLVED in 2.0] 3D ground-truth boxes and the LiDAR sensor model are not wired into the live pipeline or export
+Resolved. The COCO export carries a KITTI-convention `box3d` per object and a `kitti_P2` per image (1.2), and 2.0
+adds a LiDAR sensor: 64 beams sampled from the engine's metric depth, matched to the KITTI Velodyne's field of view,
+exported in KITTI layout with exact 3D boxes (`src/sensors/depth_lidar.py`, `bin/export_lidar_kitti.py`).
 
+What is still not done, and is recorded rather than hidden: the scans are a forward sector (not 360 degrees);
+intensity is 0 unless sampled values are requested, and sampled intensity was found to hurt a detector; there is no
+multi-return or beam divergence; the older ray-casting model in `src/sensors/lidar_model.py` is still not in the
+dataset path. Whether synthetic scans improve a detector is measured in experiments 39 to 42 of
+`EXPERIMENT_LOG.md`: not in the setup tested.

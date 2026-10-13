@@ -1,6 +1,58 @@
 Release Notes
 ==============
 
+2.0 -- 2026-10-13
+-----------------
+
+A LiDAR sensor and cyclists, each with registered experiments, and an honest account of what they showed.
+
+**LiDAR** (``src/sensors/depth_lidar.py``, ``bin/export_lidar_kitti.py``)
+
+- 64-beam scans sampled from the engine's own metric depth, matched to the KITTI Velodyne's field (81.6 degrees
+  across, -24.8 to +2.0 degrees, 0.18 degree steps, 80 m), exported in KITTI layout (``velodyne``, ``label_2``,
+  ``calib``) with exact 3D boxes. KITTI's label conventions (range cap, ``Van`` for long cars, pedestrian footprint)
+  are options, as are measured effects fitted to real scans (ring table, per-ring dropout, range noise, a
+  minimum-returns rule; ``configs/kitti_beam_pattern.json``).
+- A KITTI camera profile (``--profile kitti``: height 1.71 m, 1 degree pitch jitter) and the template
+  ``urban_dense_v19_kitti.yaml`` (pedestrian density of KITTI).
+- Viewers: ``bin/visualize_lidar_scan.py`` (bird's-eye, camera overlay and 3D views) and
+  ``bin/render_lidar_explainer.py`` (the animation in the README).
+- A cluster pipeline (``hpc/lidar/``): OpenPCDet PointPillars on KITTI's standard split, Slurm arms, job-local
+  patches for a domain flag, a real-only paste database, class-conditioned reflectance and shadow removal.
+
+**Cyclists**
+
+- A parametric bicycle with Rocketbox riders at dataset scale (``rider_v18``), the ``riders`` class profile through
+  loaders and scoring, and an annotation cutoff of 50 m for rider and bike.
+
+**Statistics**
+
+- Paired t-intervals over seeds, per-scan match tables for a paired bootstrap (``src/evaluation/match_table.py``),
+  and result parsers (``src/evaluation/paired_stats.py``, ``openpcdet_results.py``).
+
+**Results (all pre-registered; every arm and seed in the log)**
+
+- Synthetic cyclists: rider and bike mean AP 8.0 to 12.9 (+4.9, 5 seeds); 1,000 real images of the same classes
+  give 19.2 (entry 38).
+- Synthetic LiDAR on a 371-scan real base: no gain over the real scans alone (66.0 against 66.3), against +5.8 for
+  1,000 real scans (entry 39). Follow-up work (entries 40 to 42): sensor and label realism changes were not
+  resolvable; the real-only baseline was under-trained (+2.3 with matched steps); a real/synthetic input flag
+  recovered 9 to 15 pedestrian AP where intensity had marked the domain; sampled intensity hurt in each comparison tried;
+  pasting synthetic objects into real scans was neutral, and a shadow-removal step that also removed points of real
+  labelled objects was harmful.
+
+**Changed**
+
+- README restructured: LiDAR section and visualisations added; stale 1.x detail (offline quick start, per-version
+  tables, resolved open problems) moved to the log.
+- ``docs/known_gaps``: the entry that LiDAR and 3D boxes were not wired is resolved.
+
+**Not in 2.0**
+
+- 360 degree LiDAR (a forward sector only, like the camera), intensity from material, multi-return and beam
+  divergence, and the per-scan bootstrap for the LiDAR and cyclist studies (the per-scan detections stay on the
+  cluster and were not copied back).
+
 1.3 -- 2026-10-10
 -----------------
 

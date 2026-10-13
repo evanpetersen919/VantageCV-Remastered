@@ -17,7 +17,7 @@ Every entry is its own file under [`docs/known_gaps/`](docs/known_gaps/).
 
 | Status | Entry |
 |---|---|
-| DEFERRED | [3D ground-truth boxes and the LiDAR sensor model are not wired into the live pipeline or export](docs/known_gaps/open/01_3d-ground-truth-boxes-and-the-lidar-sensor-model-are-not-wir.md) |
+| RESOLVED (2.0) | [3D ground-truth boxes and the LiDAR sensor model are not wired into the live pipeline or export](docs/known_gaps/open/01_3d-ground-truth-boxes-and-the-lidar-sensor-model-are-not-wir.md) |
 | RESOLVED | [Horizon "ribbon" artifact -- WorldPartitionHLOD proxies, a class the terrain-hiding logic never matched](docs/known_gaps/open/02_horizon-ribbon-artifact-worldpartitionhlod-proxies-a-class-t.md) |
 | VERIFIED | [Full-size (500m) scenario load: 299 buildings, ~68,000 assets, no crash](docs/known_gaps/open/03_full-size-500m-scenario-load-299-buildings-68-000-assets-no.md) |
 | RESOLVED, no foliage | [Scenario seasons: winter, spring, summer, fall](docs/known_gaps/open/04_scenario-seasons-winter-spring-summer-fall.md) |

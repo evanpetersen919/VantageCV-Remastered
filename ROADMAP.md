@@ -1,12 +1,17 @@
 # Roadmap
 
-Written 2026-10-07, after 1.1. Every step below names the question it answers and the result that would
+Written 2026-10-07, after 1.1; the status section was updated 2026-10-13 for 2.0. Every step below names the question it answers and the result that would
 change what happens next, in the same way the experiments in [`EXPERIMENT_LOG.md`](EXPERIMENT_LOG.md) do.
 The evidence behind the ordering comes from desk research (competitor pages, papers' abstracts, repositories)
 and from this project's own results. Claims from the research that were not checked against a primary source are
 marked as such in the log entries that use them.
 
 ## Where things stand
+
+- **2.0 (2026-10-13)** adds a depth-sampled 64-beam LiDAR matched to the KITTI sensor and synthetic cyclists. Synthetic
+  cyclists raise rider and bike AP by +4.9 (about half of what real images give); synthetic LiDAR scans did not beat
+  real ones on a 371-scan base, and four registered follow-ups (entries 39 to 42) mapped why. The camera results
+  below are unchanged.
 
 - Synthetic images added to 25% real BDD100K data raise AP by about +2.8 (three seeds), evenly across weather,
   time of day and scene type. The gain shrinks as real data grows, and about a quarter of it disappears when the
@@ -71,7 +76,8 @@ tracking, optical flow, vehicle physics) belongs to CARLA and is not rebuilt her
   truck population, which needs many licensed models for an uncertain gain.
 - **Moving actors, sequences and optical flow in VantageCV.** CARLA already does this.
 - **A learned full-stack driving model** (TransFuser-class). Multi-GPU training, beyond this hardware.
-- **LiDAR or radar physics, digital twins, a hosted platform.** Commercial vendors own these.
+- **Radar, ray-cast LiDAR physics, digital twins, a hosted platform.** Commercial vendors own these; the 2.0
+  LiDAR is depth-sampled, not ray-cast.
 
 ## Open dependencies
 
