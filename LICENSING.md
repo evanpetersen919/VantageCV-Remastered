@@ -42,6 +42,13 @@ content; (b) generate tags to classify visual input content; or (c) generate ins
 creating new content." Reading: an object detector produces tags and boxes and creates no content, so it fits (b). The list is
 "by non-limiting example", and Epic has not confirmed it.
 
+**Confirmed from the live page by the owner, 2026-10-13.** The owner read `fab.com/eula` in a browser (header "Last updated:
+October 1st, 2024") and pasted Section 16(l)(i); it matches the quote above word for word, including "Programs do not meet this
+definition of Generative AI Programs where they, by non-limiting example, (a) solely operate on the original content; (b)
+generate tags to classify visual input content; or (c) generate instructions to arrange existing content, without creating new
+content." Two points of wording to keep in view: the NoAI status is fixed by the tag "at the time of your Transaction", and the
+restriction is on use "in datasets utilized by Generative AI Programs", so a release should carry a term barring that use.
+
 **2. Content License Agreement Section 17** (fetched from `unrealengine.com/en-US/eula/content`) has the same purpose-limited
 definition **without** the carve-out examples. Differences that matter: CLA Section 16(b) says amended terms apply to Licensed
 Content "that you downloaded under any prior version of this Agreement" (Fab Section 7(a) keeps the terms at acquisition), and Fab
@@ -410,8 +417,8 @@ for the tooling used, so the quotes above rest on the owner's paste. Corroborati
 
 ## Open items that need a person, not a search
 
-- Re-read Fab EULA Section 16(l) and Content License Agreement Sections 3 and 17 in a browser (read 2026-10-13 only through a
-  renderer and curl; see the research pass).
+- Fab EULA Section 16(l): confirmed in a browser by the owner on 2026-10-13. Still to re-read in a browser: Content License
+  Agreement Sections 3 and 17 (read 2026-10-13 through curl only).
 - Look up City Sample's NoAI tag status and agreement at the time of acquisition (purchase history).
 - Acceptance dates and the licence version shown in the Epic account for City Sample and the Vehicle Variety Pack.
 - Confirm the BDD100K licence on the official site (`doc.bdd100k.com` did not resolve; `bdd-data.berkeley.edu` failed its certificate
