@@ -74,3 +74,15 @@ pasted synthetic objects only, never to a whole scene (the whole-scene use was r
 - The intensity histograms are marginal (class and range), not material or incidence conditioned.
 - The database holds synthetic objects with intensity 0 in `O1` and `O2`: they remain separable by that channel by
   construction; `O3` is the arm that removes it.
+
+## Result (2026-10-13)
+
+Full write-up: `docs/experiments/42_lidar-synthetic-objects-pasted-into-real-scans.md`; numbers in
+`results/lidar_insertion_analysis.json`.
+
+- **Confirmatory `O3 - Astep_occ`: M -3.71 [-5.32, -2.10]**, Car guard holds (-0.19). Not supported.
+- H13 unresolved (`O1 - Astep` +0.3 [-0.3, +0.9]); H14 not supported (`Astep_occ - Astep` -1.9, pedestrian -7.0);
+  H15 not supported (`O3 - O2` -2.5, pedestrian -7.8).
+- No amendments were made to the registered design. A diagnostic outside the registered arms suggests the shadow
+  step removes points of real labelled objects (6.6% of real pedestrian points on random pasted boxes); a variant that
+  protects them is not registered or run.

@@ -89,3 +89,17 @@ def test_improvement_loss_is_not_supported(tmp_path: Path) -> None:
     result = followup.analyse(tmp_path, "improvement")
     assert result["confirmatory"]["interval"]["high"] < 0
     assert not result["confirmatory"]["supported"]
+
+
+def test_insertion_confirmatory_is_o3_against_astep_occ(tmp_path: Path) -> None:
+    """The insertion study reads O3 - Astep_occ; a uniform drop for O3 is not supported."""
+    names = {a for _, p in followup.INSERTION_CONTRASTS for pair in p for a in pair}
+    for seed in followup.SEEDS:
+        base = {"Car": 50.0, "Pedestrian": 30.0 + 0.2 * seed, "Cyclist": 25.0}
+        for arm in names:
+            shift = -3.0 if arm == "O3" else 0.0
+            _write(tmp_path, arm, seed, {k: v + shift for k, v in base.items()})
+    result = followup.analyse(tmp_path, "insertion")
+    assert result["confirmatory"]["test"] == "O3 - Astep_occ"
+    assert result["confirmatory"]["interval"]["high"] < 0
+    assert not result["confirmatory"]["supported"]

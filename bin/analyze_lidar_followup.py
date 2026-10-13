@@ -61,8 +61,31 @@ IMPROVEMENT_CONTRASTS: Tuple[Tuple[str, Sequence[Tuple[str, str]]], ...] = (
     ("H12 matched steps", (("Astep", "A"), ("E1x3", "E1step"), ("E1step", "E1"), ("E1x3", "Ax3"))),
     ("post hoc, not registered", (("B", "Astep"), ("E3a", "Astep"), ("S4_rdb", "Astep"))),
 )
+# Stage 2 (docs/lidar/insertion_preregistration.md): confirmatory test O3 - Astep_occ.
+INSERTION_CONFIRMATORY = ("O3", "Astep_occ")
+INSERTION_CONTRASTS: Tuple[Tuple[str, Sequence[Tuple[str, str]]], ...] = (
+    (
+        "confirmatory and reference",
+        (("O3", "Astep_occ"), ("O3", "Astep"), ("O3", "B"), ("O3", "Ax3")),
+    ),
+    (
+        "H13 synthetic objects, H14 shadow removal, H15 reflectance",
+        (
+            ("O1", "Astep"),
+            ("Astep_occ", "Astep"),
+            ("O2", "O1"),
+            ("O2", "Astep_occ"),
+            ("O3", "O2"),
+        ),
+    ),
+)
 STUDIES = {
     "followup": (CONTRASTS, CONFIRMATORY, "results/lidar_followup_analysis.json"),
+    "insertion": (
+        INSERTION_CONTRASTS,
+        INSERTION_CONFIRMATORY,
+        "results/lidar_insertion_analysis.json",
+    ),
     "improvement": (
         IMPROVEMENT_CONTRASTS,
         IMPROVEMENT_CONFIRMATORY,
