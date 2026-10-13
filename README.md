@@ -20,6 +20,10 @@ transfer to real data (BDD100K, Cityscapes, KITTI), including what didn't work.*
 |:---:|:---:|:---:|:---:|
 | synthetic images added to 460 real BDD100K images ([results](#results)) | camera check: projected points against the engine's render | LiDAR scans in KITTI format with exact 3D boxes ([LiDAR](#lidar-new-in-20)) | strict mypy, pylint 10/10, CI on every push |
 
+**Dataset:** [VantageCV Synthetic Driving: Riders on Kaggle](https://www.kaggle.com/datasets/evanpetersen919/vantagecv-synthetic-driving-riders): 1,399 frames with exact masks,
+riders and bicycles, a class map and metric depth for every frame, with a quickstart notebook. Images and 2D labels
+only (no LiDAR or 3D geometry; see [`LICENSING.md`](LICENSING.md)).
+
 ## What you get
 
 | | |
@@ -207,9 +211,9 @@ dataset card) and validates it.
 The plan, with what each step is meant to answer and what is deliberately not being done, is in
 [`ROADMAP.md`](ROADMAP.md). Where things stand after 2.0:
 
-- **Dataset release:** a Rocketbox-based dataset for Kaggle, with the camera and LiDAR exports, a data card and the
-  baselines above. On hold until the checklist in [`LICENSING.md`](LICENSING.md) is closed; no trained weights will be
-  published.
+- **Dataset:** published on [Kaggle](https://www.kaggle.com/datasets/evanpetersen919/vantagecv-synthetic-driving-riders) (2026-10-13): 1,399 Rocketbox-batch frames with exact masks, riders, class
+  maps and depth, images and 2D labels only. The LiDAR scans and 3D labels are not released until the point-cloud
+  licensing question in [`LICENSING.md`](LICENSING.md) is answered; no trained weights will be published.
 - **LiDAR transfer:** open. The remaining untried step is object insertion that protects real labelled objects from
   the shadow step (experiment 42); 360 degree coverage with multi-camera RGB is planned as a separate release.
 - **Closed loop:** vehicle physics and traffic belong to CARLA (`carla_loop/`); VantageCV stays static and labelled.
@@ -341,5 +345,5 @@ Unreal Engine and City Sample are the property of Epic Games, Inc.
 used to train models is not settled: Epic was asked (2026-10-05) and replied (2026-10-08) that it cannot give legal
 or EULA interpretations for a specific distribution model and recommended the developer's own legal counsel. New
 work uses the MIT-licensed Rocketbox avatars instead, and the City Sample crowd is kept only to reproduce earlier
-batches. No datasets or trained weights are published, and results that rely on synthetic pedestrians are
-provisional.
+batches. One dataset is published (the Rocketbox-batch, images-only set on Kaggle above); no trained weights are
+published, and results that rely on synthetic pedestrians are provisional.

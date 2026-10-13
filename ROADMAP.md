@@ -8,6 +8,8 @@ marked as such in the log entries that use them.
 
 ## Where things stand
 
+- **Dataset (2026-10-13):** the images-only Rocketbox batch is published on Kaggle (https://www.kaggle.com/datasets/evanpetersen919/vantagecv-synthetic-driving-riders); LiDAR and 3D labels
+  wait on the point-cloud licensing question.
 - **2.0 (2026-10-13)** adds a depth-sampled 64-beam LiDAR matched to the KITTI sensor and synthetic cyclists. Synthetic
   cyclists raise rider and bike AP by +4.9 (about half of what real images give); synthetic LiDAR scans did not beat
   real ones on a 371-scan base, and four registered follow-ups (entries 39 to 42) mapped why. The camera results

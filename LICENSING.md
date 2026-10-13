@@ -21,7 +21,12 @@ Dated working notes and results are in [`EXPERIMENT_LOG.md`](EXPERIMENT_LOG.md).
 | KITTI (statistics, ring table and split lists derived from it; no KITTI data committed) | CC BY-NC-SA 3.0 plus "academic use only" (official page, 2026-10-13) | **Open.** Whether measured statistics and the split lists are adaptations under the licence or fall under EU database rights; nothing was shipped as KITTI data | LiDAR study, `configs/kitti_*` |
 | ultralytics (YOLO training code) | AGPL-3.0 (LICENSE file read); Ultralytics states trained models are AGPL-3.0 too unless an Enterprise License is bought | **A blocker for releasing weights under a non-AGPL licence**; the repository code that imports it is also affected | training |
 
-**Published so far:** MIT code, rendered images and videos, results and this log. **Not published:** datasets and trained
+**Published on 2026-10-13:** the images-only Rocketbox batch `rider_v18` (1,399 frames, exact masks, class maps and depth,
+no 3D boxes, calibration or LiDAR) on Kaggle, https://www.kaggle.com/datasets/evanpetersen919/vantagecv-synthetic-driving-riders, with the draft terms and notices in
+its folder (`DATASET_TERMS.md`, `NOTICES.md`), packaged with `bin/package_dataset.py --images-only --profile riders`.
+The decision rests on the Fab 16(l) reading recorded below and on the precedent of PUG and MatrixCity; it is not a
+clearance from Epic or counsel, and a takedown request would be honoured first. **Published earlier:** MIT code, rendered
+images and videos, results and this log. **Not published:** LiDAR scans, 3D labels and trained
 weights. **Goal (owner, 2026-10-08): publish the dataset on Kaggle; trained weights are not going to be published.** What that
 requires is in the section "Publishing the dataset on Kaggle" below; the weights-only rows (ultralytics, BDD100K's commercial
 restriction) stop mattering for a dataset-only release.

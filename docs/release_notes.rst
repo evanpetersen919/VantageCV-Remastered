@@ -42,6 +42,13 @@ A LiDAR sensor and cyclists, each with registered experiments, and an honest acc
   pasting synthetic objects into real scans was neutral, and a shadow-removal step that also removed points of real
   labelled objects was harmful.
 
+**Dataset**
+
+- The images-only Rocketbox batch ``rider_v18`` is published on Kaggle (https://www.kaggle.com/datasets/evanpetersen919/vantagecv-synthetic-driving-riders): 1,399 frames, exact
+  masks, a Cityscapes class map and metric depth per frame, riders and bicycles included, with a dataset card, draft
+  terms (no generative-AI use) and notices. No LiDAR, 3D boxes or calibration are included.
+- ``bin/package_dataset.py`` gained ``--profile riders`` and ``--images-only``.
+
 **Changed**
 
 - README restructured: LiDAR section and visualisations added; stale 1.x detail (offline quick start, per-version
