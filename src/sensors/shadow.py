@@ -37,6 +37,8 @@ def visible_mask(
     ``corners`` is ``(B, 8, 3)``, the corners of the pasted boxes. A box with a corner behind the
     sensor (x <= 0) is skipped.
     """
+    points_xyz = np.asarray(points_xyz, dtype=np.float64)
+    corners = np.asarray(corners, dtype=np.float64)  # also accepts a CPU torch tensor
     keep = np.ones(points_xyz.shape[0], dtype=bool)
     if points_xyz.shape[0] == 0 or corners.shape[0] == 0:
         return keep

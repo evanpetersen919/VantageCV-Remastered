@@ -5,6 +5,7 @@
 #   bash hpc/lidar/submit_lidar_improvement.sh              # every arm whose list is in the bundle
 #   GROUPS_="stage1" bash hpc/lidar/submit_lidar_improvement.sh
 #   SMOKE=1 bash hpc/lidar/submit_lidar_improvement.sh     # one seed (0) of every arm with EPOCHS=1
+#   ONLY="O2 O3" GROUPS_=stage2 bash hpc/lidar/submit_lidar_improvement.sh   # just these result names
 #
 # Result names: S1..S4 (stage 1); Astep, E1step, E3a_rdb, S4_rdb, E0i_flag, E4_flag (stage 0);
 # Astep_occ, O1, O2, O3 (stage 2, GROUPS_=stage2).
@@ -21,6 +22,7 @@ SEEDS="0 1 2 3 4"
 COUNT=0
 run() {  # RESULT_NAME LIST EPOCHS [extra env assignments...]
   local NAME="$1" LIST="$2" EP="$3"; shift 3
+  if [ -n "${ONLY:-}" ] && ! [[ " $ONLY " == *" $NAME "* ]]; then return; fi   # e.g. ONLY="O2 O3"
   if [ ! -f "$DATA_LISTS/$LIST.txt" ]; then echo "skip $NAME (no list $LIST)"; return; fi
   for SEED in $SEEDS; do
     if [ "${SMOKE:-0}" = "1" ]; then EP=1; fi

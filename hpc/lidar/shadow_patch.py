@@ -23,6 +23,8 @@ def _remove_with_shadows(points, boxes3d):  # type: ignore[no-untyped-def]
     if not _STATE["pasting"] or kept.shape[0] == 0:
         return kept
     corners = box_utils.boxes_to_corners_3d(boxes3d)
+    if hasattr(corners, "cpu"):  # OpenPCDet returns a torch tensor here
+        corners = corners.cpu().numpy()
     return kept[visible_mask(kept[:, :3], corners)]
 
 

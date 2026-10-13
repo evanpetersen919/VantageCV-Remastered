@@ -32,6 +32,15 @@ def test_points_behind_the_box_are_removed_and_others_kept() -> None:
     assert keep.tolist() == [False, True, True, True]
 
 
+def test_accepts_float32_and_array_likes() -> None:
+    """Float32 arrays and nested lists (as a tensor converts to) give the same mask."""
+    corners = _box(10.0)[None, :, :]
+    points = np.array([[20.0, 0.0, 0.0], [5.0, 0.0, 0.0]])
+    expected = visible_mask(points, corners).tolist()
+    assert visible_mask(points.astype(np.float32), corners.astype(np.float32)).tolist() == expected
+    assert visible_mask(points.tolist(), corners.tolist()).tolist() == expected
+
+
 def test_no_boxes_or_no_points_keeps_everything() -> None:
     """Empty inputs return an all-true (or empty) mask."""
     points = np.random.default_rng(0).normal(size=(5, 3)) + np.array([10.0, 0.0, 0.0])
