@@ -142,6 +142,36 @@ licences and no right in them is granted."
   acquisition date and no tag history (`created_at` and `downloaded_at` are empty or 0). The date you added City Sample, and
   whether it carried the tag then, has to come from the Fab library ("Added" date) or the Epic account's purchase history.
 
+**Published precedent and community readings found on 2026-10-13 (confirmation search; none of it is an Epic ruling).**
+
+- **Meta's PUG dataset** (NeurIPS 2023, rendered in Unreal Engine from Unreal Marketplace and Sketchfab assets). Its GitHub
+  README: "The datasets are distributed under the CC-BY-NC, with the addenda that they should not be used to train Generative AI
+  models." The paper's datasheet says the assets belong to external sources and points to Epic's terms ("See EpicGames"). This
+  is the closest published precedent for the terms drafted above: a non-commercial licence plus an explicit no-generative-AI
+  addendum, on a dataset made of Epic-ecosystem renders. No Epic objection was found (absence of evidence).
+- **MatrixCity** (ICCV 2023), built with "the Unreal Engine 5 City Sample project": its project page says "copyright by us and
+  published under the Creative Commons Attribution-NonCommercial 4.0 International License", with no mention of Epic's terms.
+  Publicly released; no objection found.
+- **Epic Developer Community thread, July 2024** ("Unreal Engine Marketplace Licenses Question"): a researcher planning to
+  publish extracted frames and text annotations for non-commercial research, with the same reading of the NoAI wording as
+  recorded here ("What i am trying to do is Predictive AI (not Generative)"). Marketplace support replied, as the poster
+  reports, that they "are not able to provide legal clarifications for specific use cases"; no Epic staff post in the thread.
+  This matches Epic's reply to this project (2026-10-08).
+- **Epic's own description of the tag** (Fab developer documentation, quoted earlier): "The NoAI meta tag indicates that an asset
+  must not be used for generative AI data collection"; the Publisher Portal control is worded "Disallow use by generative AI".
+- **Unreal Engine EULA thread, October 2024** ("NEW EULA AI Restriction?"): community members only, divided between a broad and
+  a narrow reading of the engine clause; no Epic staff reply; nothing on detectors or synthetic data.
+- **KITTI split lists in other repositories:** `charlesq34/frustum-pointnets` carries `kitti/image_sets/{train,val,trainval,test}.txt`
+  (listing seen; the repository's licence was not visible on the page). Common practice, not a legal confirmation.
+- **Creative Commons guidance** ("Using CC-licensed works for AI training"): the BY, SA and ND conditions "are triggered only when
+  works or adaptations of works are publicly shared"; the NC condition applies to "all uses requiring permission under copyright".
+  The page does not address statistics or facts extracted from a licensed dataset.
+- **Rocketbox:** no dataset built from it and licensed with ML terms was found; the repository README says "The library of
+  avatars is now released under MIT License" (12/2020).
+
+Net: the clause text, Epic's own description of the tag and two published Unreal-based datasets all point the same way (a
+detector dataset with a no-generative-AI term). Nothing found is an authoritative confirmation, and nothing found contradicts it.
+
 **Questions for counsel, after this pass**
 1. Do depth, class, mask, 3D-box and LiDAR outputs fall inside the distribution right for "images created using Content", or are
    they derived data under Fab 6(b)(i)?
