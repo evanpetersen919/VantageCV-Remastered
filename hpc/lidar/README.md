@@ -81,3 +81,16 @@ EPOCHS=1 SELECT_LAST=1 SCORE_THRESH=0.0 DOMAIN_FLAG=1 RESULT_NAME=smoke_flag bas
 
 Then `bash hpc/lidar/submit_lidar_improvement.sh` (50 jobs: stage 1 first, stage 0 after), or
 `GROUPS_=stage1 bash ...` to start with the four sensor arms.
+
+### Stage 2 (`docs/lidar/insertion_preregistration.md`)
+
+Real frames only (list `A`, 296 epochs); synthetic objects enter through the ground-truth-sampling database. No new
+upload: the objects come from the `S4` frames already in the bundle. Three new switches, **not yet run on the
+cluster, so smoke them first**: `EXTRA_DB_FROM=<list>`, `EXTRA_DB_REFLECTANCE=1`, `SHADOWS=1`.
+
+```
+EPOCHS=1 SELECT_LAST=1 SCORE_THRESH=0.0 EXTRA_DB_FROM=S4 EXTRA_DB_REFLECTANCE=1 SHADOWS=1 RESULT_NAME=smoke_o3 \
+  bash hpc/lidar/submit_lidar_study.sh smoke_o3 A 0
+```
+
+Then `GROUPS_=stage2 bash hpc/lidar/submit_lidar_improvement.sh` (20 jobs: `Astep_occ`, `O1`, `O2`, `O3`).

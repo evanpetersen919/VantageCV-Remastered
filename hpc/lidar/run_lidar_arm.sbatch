@@ -18,6 +18,13 @@ NO_INTENSITY="${NO_INTENSITY:-0}"
 # the matched-step baselines.
 REAL_DB_ONLY="${REAL_DB_ONLY:-0}"
 DOMAIN_FLAG="${DOMAIN_FLAG:-0}"
+# Stage 2 (docs/lidar/insertion_preregistration.md): EXTRA_DB_FROM=<list> adds the labelled objects of that list's
+# synthetic frames (ids from 100000) to the ground-truth-sampling database, without adding the frames;
+# EXTRA_DB_REFLECTANCE=1 redraws those objects' intensity from KITTI's class and range histograms; SHADOWS=1
+# also removes the scene points behind every pasted object (hpc/lidar/shadow_patch.py).
+EXTRA_DB_FROM="${EXTRA_DB_FROM:-}"
+EXTRA_DB_REFLECTANCE="${EXTRA_DB_REFLECTANCE:-0}"
+SHADOWS="${SHADOWS:-0}"
 EPOCHS="${EPOCHS:-80}"            # OpenPCDet's KITTI PointPillars default
 SELECT_LAST="${SELECT_LAST:-5}"   # last epochs considered for checkpoint selection on the held-out slice
 # Smoke tests only: a one-epoch model predicts nothing at the standard 0.1 score threshold, and OpenPCDet's
@@ -53,7 +60,7 @@ done
 
 cd "$SRC"
 ZERO_PATCH_DIR="$HPC_ROOT/repo/hpc/lidar"
-if [ "$NO_INTENSITY" = 1 ] || [ "$DOMAIN_FLAG" = 1 ]; then export PYTHONPATH="$ZERO_PATCH_DIR:${PYTHONPATH:-}"; fi
+if [ "$NO_INTENSITY" = 1 ] || [ "$DOMAIN_FLAG" = 1 ] || [ "$SHADOWS" = 1 ]; then export PYTHONPATH="$ZERO_PATCH_DIR:${PYTHONPATH:-}"; fi
 ROOTS="select final"
 if [ "$REAL_DB_ONLY" = 1 ]; then
   RDB="$WORK/realdb"
@@ -64,6 +71,17 @@ if [ "$REAL_DB_ONLY" = 1 ]; then
   : > "$RDB/ImageSets/test.txt"
   echo "real-only database from $(wc -l < "$RDB/ImageSets/train.txt") real frames"
   ROOTS="select final realdb"
+fi
+if [ -n "$EXTRA_DB_FROM" ]; then
+  [ -f "$DATA/ImageSets/$EXTRA_DB_FROM.txt" ] || { echo "ERROR: no list $EXTRA_DB_FROM" >&2; exit 1; }
+  XDB="$WORK/extradb"
+  mkdir -p "$XDB/ImageSets"
+  ln -s "$DATA/training" "$XDB/training"
+  tr -d '\r' < "$DATA/ImageSets/$EXTRA_DB_FROM.txt" | awk '$1 + 0 >= 100000' > "$XDB/ImageSets/train.txt"
+  cp "$DATA/ImageSets/hold.txt" "$XDB/ImageSets/val.txt"
+  : > "$XDB/ImageSets/test.txt"
+  echo "extra object database from $(wc -l < "$XDB/ImageSets/train.txt") synthetic frames of $EXTRA_DB_FROM"
+  ROOTS="$ROOTS extradb"
 fi
 # OpenPCDet's create_kitti_infos CLI hard-codes data/kitti under the repo; call the function with our paths.
 for ROLE in $ROOTS; do
@@ -97,6 +115,24 @@ if [ "$REAL_DB_ONLY" = 1 ]; then
   done
 fi
 
+if [ -n "$EXTRA_DB_FROM" ]; then
+  # paste candidates: the arm's own (real) objects plus the synthetic ones, in every root the job reads
+  for ROLE in select final; do
+    EXTRA_ROOT="$WORK/extradb" TARGET_ROOT="$WORK/$ROLE" REFLECTANCE="$EXTRA_DB_REFLECTANCE" HPC_ROOT="$HPC_ROOT" \
+      python - <<'PY'
+import json, os
+from pathlib import Path
+from src.export.object_database import merge_object_databases
+constants = None
+if os.environ["REFLECTANCE"] == "1":
+    constants = json.loads(Path(os.environ["HPC_ROOT"], "repo", "configs", "kitti_derived_constants.json")
+                           .read_text(encoding="utf-8"))
+added = merge_object_databases(Path(os.environ["TARGET_ROOT"]), Path(os.environ["EXTRA_ROOT"]), constants)
+print("merged synthetic objects into", os.environ["TARGET_ROOT"], added)
+PY
+  done
+fi
+
 # OpenPCDet's train.py fixes its seed at 666 (two places) with --fix_random_seed; use a job-local copy with ours.
 cp tools/train.py "tools/train_${NAME}.py"
 sed -i "s/666/${SEED}/g" "tools/train_${NAME}.py"
@@ -106,6 +142,9 @@ if [ "$NO_INTENSITY" = 1 ]; then
 fi
 if [ "$DOMAIN_FLAG" = 1 ]; then
   sed -i "1i import domain_flag_patch  # noqa: F401" "tools/train_${NAME}.py" "tools/test_${NAME}.py"
+fi
+if [ "$SHADOWS" = 1 ]; then   # sampling only runs in training
+  sed -i "1i import shadow_patch  # noqa: F401" "tools/train_${NAME}.py"
 fi
 if grep -q "666" "tools/train_${NAME}.py" || ! grep -q "random_seed(${SEED}" "tools/train_${NAME}.py"; then
   echo "ERROR: seed patch did not apply (train.py changed upstream?)" >&2; exit 1

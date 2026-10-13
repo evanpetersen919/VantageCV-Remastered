@@ -6,14 +6,15 @@
 #   GROUPS_="stage1" bash hpc/lidar/submit_lidar_improvement.sh
 #   SMOKE=1 bash hpc/lidar/submit_lidar_improvement.sh     # one seed (0) of every arm with EPOCHS=1
 #
-# Result names: S1..S4 (stage 1); Astep, E1step, E3a_rdb, S4_rdb, E0i_flag, E4_flag (stage 0).
+# Result names: S1..S4 (stage 1); Astep, E1step, E3a_rdb, S4_rdb, E0i_flag, E4_flag (stage 0);
+# Astep_occ, O1, O2, O3 (stage 2, GROUPS_=stage2).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/../config.env"
 [ -f "$HERE/../config.local.env" ] && source "$HERE/../config.local.env"
 DATA_LISTS="${DATA_LISTS:-$HPC_ROOT/data/lidar_study/kitti/ImageSets}"
 unset SCORE_THRESH
-GROUPS_="${GROUPS_:-stage1 stage0}"
+GROUPS_="${GROUPS_:-stage1 stage0 stage2}"
 SEEDS="0 1 2 3 4"
 [ "${SMOKE:-0}" = "1" ] && SEEDS="0"
 
@@ -40,6 +41,11 @@ for GROUP in $GROUPS_; do
       run S4_rdb S4 80 REAL_DB_ONLY=1
       run E0i_flag E 80 NO_INTENSITY=1 DOMAIN_FLAG=1
       run E4_flag E4 80 DOMAIN_FLAG=1 ;;
+    stage2)   # docs/lidar/insertion_preregistration.md: real frames only, synthetic objects in the paste database
+      run Astep_occ A 296 SHADOWS=1
+      run O1 A 296 EXTRA_DB_FROM=S4
+      run O2 A 296 EXTRA_DB_FROM=S4 SHADOWS=1
+      run O3 A 296 EXTRA_DB_FROM=S4 SHADOWS=1 EXTRA_DB_REFLECTANCE=1 ;;
     *) echo "unknown group $GROUP" >&2; exit 1 ;;
   esac
 done
