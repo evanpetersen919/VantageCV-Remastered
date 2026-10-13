@@ -107,6 +107,41 @@ supply as input to, any generative AI program, meaning AI designed to automate t
 content. You must include this condition in any redistribution. Underlying third-party assets remain subject to their own
 licences and no right in them is granted."
 
+**Addendum, same day: three items settled by reading.**
+
+- **Current Unreal Engine EULA** (`unrealengine.com/en-US/eula/unreal`, fetched with a browser user agent, 58,000 characters
+  of text). The generative-AI clause concerns the engine: among the things you may not do is "result in using the Licensed
+  Technology as a training input to any Generative AI Program or as prompt-based input where the Generative AI Program trains
+  on input data", with "Generative AI Program" defined as technologies "designed to automate the generation of or aid in the
+  creation of new content". It is about the engine code, not rendered output, and not about a detector. The same list holds
+  the MetaHuman clause quoted earlier ("or any rendered output thereof if crafted to replicate the functionality of MetaHuman").
+  The credits clause is conditional: "If a Product you develop under this Agreement has credits, you must place the following
+  notices in the credits" ("[Product name] uses Unreal Engine. Unreal is a trademark or registered trademark of Epic Games,
+  Inc. in the United States of America and elsewhere." and "Unreal Engine, Copyright 1998 - xxxx, Epic Games, Inc. All rights
+  reserved."); including both in a dataset card costs nothing.
+- **Content License Agreement, distribution items.** Section 3(b) (fetched from `unrealengine.com/en-US/eula/content`): "You may
+  freely Distribute Licensed Content incorporated into rendered linear media products. This means, for example, you may freely
+  Distribute rendered video files ... or images created using Licensed Content." The restrictions in Section 5 include: "vii.
+  except where explicitly allowed by this Agreement, collect, aggregate, mine, scrape, or otherwise use any Licensed Content for
+  the purposes of publishing, selling, distributing or otherwise making the content available to others to use, download or
+  copy; viii. collect, aggregate, mine, scrape or otherwise use NoAI Content (i) in datasets utilized by Generative AI Programs;
+  ...". Consequence: images are explicitly allowed; point clouds and other geometry-derived data are not named, and item vii is
+  the clause that would bite if they were read as "making the content available". This is the strongest reason to treat
+  LiDAR as a separate, later question.
+- **BDD100K data licence** (the project's own documentation source,
+  `raw.githubusercontent.com/bdd100k/bdd100k/master/doc/source/license.rst`; the official hosts still fail): "The data and
+  labels downloaded from https://bdd-data.berkeley.edu/ are under the License below. Copyright 2018. The Regents of the
+  University of California ... Permission to use, copy, modify, and distribute this software and its documentation for
+  educational, research, and not-for-profit purposes, without fee and without a signed licensing agreement; and permission to
+  use, copy, modify and distribute this software for commercial purposes (such rights not subject to transfer) to BDD and BAIR
+  Commons members and their affiliates, is hereby granted, provided that the above copyright notice, this paragraph and the
+  following two paragraphs appear in all copies, modifications, and distributions." This matches the mirror text recorded
+  below. No data is shipped.
+- **What the local Fab cache can and cannot say** (`VaultCache/FabLibrary/listings_v1.db`, read 2026-10-13): City Sample and the
+  Vehicle Variety Pack read `is_ai_forbidden` = 1; the listings' publish times are 2026-08-27 and 2026-07-20; the cache has no
+  acquisition date and no tag history (`created_at` and `downloaded_at` are empty or 0). The date you added City Sample, and
+  whether it carried the tag then, has to come from the Fab library ("Added" date) or the Epic account's purchase history.
+
 **Questions for counsel, after this pass**
 1. Do depth, class, mask, 3D-box and LiDAR outputs fall inside the distribution right for "images created using Content", or are
    they derived data under Fab 6(b)(i)?
