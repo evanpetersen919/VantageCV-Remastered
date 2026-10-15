@@ -117,8 +117,10 @@ def background() -> npt.NDArray[np.float32]:
     return np.repeat(column[:, None, :], width, axis=1) / 255.0
 
 
-def build(dataset: Path, frame: int) -> Image.Image:  # pylint: disable=too-many-locals
-    """The finished 1920 x 1080 picture."""
+def build(  # pylint: disable=too-many-locals
+    dataset: Path, frame: int, overlays: bool = True
+) -> Image.Image:
+    """The finished 1920 x 1080 picture (``overlays=False``: the scan and arcs only, no text)."""
     module = _explainer()
     loaded = load_frame(dataset, frame, "kitti", KITTI_PATTERN)
     label = loaded.label
@@ -131,15 +133,16 @@ def build(dataset: Path, frame: int) -> Image.Image:  # pylint: disable=too-many
     scan = tone_map(buffer, glow_sigma=5.0, glow_gain=1.5)
     base = np.clip(background() + scan * 1.05, 0.0, 1.0)
     picture = Image.fromarray((base * 255).astype(np.uint8)).convert("RGBA")
-    layers: List[Image.Image] = [
-        arcs_layer(module),
-        key_layer(module),
-        module.chip_layer("RANGE VIEW"),
-        module.caption_layer(
-            "THE SCAN, SEEN IN RANGE",
-            "64 beams, 81.6 degrees across: each point coloured by its distance",
-        ),
-    ]
+    layers: List[Image.Image] = [arcs_layer(module)]
+    if overlays:
+        layers += [
+            key_layer(module),
+            module.chip_layer("RANGE VIEW"),
+            module.caption_layer(
+                "THE SCAN, SEEN IN RANGE",
+                "64 beams, 81.6 degrees across: each point coloured by its distance",
+            ),
+        ]
     for layer in layers:
         picture.alpha_composite(layer)
     graded = _grade(np.asarray(picture.convert("RGB"), dtype=np.float32))
