@@ -10,7 +10,8 @@ and split into three bands:
 * middle: the engine's class map of the same image, with the same boxes, so the render flows into
   its labels;
 * right: the 64-beam LiDAR scan of the same frame as a point cloud coloured by range, seen from
-  behind and above (``bin/render_lidar_range_still.py``).
+  behind and above (``bin/render_lidar_range_still.py``), with the exact 3D boxes of the objects
+  that have a visible cluster of points drawn over it.
 
 The title is overlaid lower left, in the style of the project's other images. Every pixel is the
 project's own render, label or simulated scan; it makes no study data.
@@ -30,12 +31,19 @@ import numpy as np
 import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
+from src.export.kitti_lidar import box_corners, points_in_box
 from src.ground_truth.semantic_classes import PALETTE
+from src.sensors.depth_lidar import KITTI_PATTERN
+from src.sensors.lidar_render import draw_boxes, project
+from src.sensors.lidar_view import labelled_boxes, load_frame
 
 WIDTH, HEIGHT = 1920, 540  # the ultrawide band
 TOP = 330  # first row kept of the 1080-row render and class map
-LIDAR_TOP = 360  # first row kept of the 1080-row LiDAR picture
+LIDAR_TOP = 450  # first row kept of the 1080-row LiDAR picture
 LIDAR_GAIN = 1.55
+SENSOR_HEIGHT_M = 1.71
+MIN_POINTS_IN_BOX = 150  # only boxes with a visible cluster are drawn; the rest is clutter
+MAX_RANGE_M = 45.0
 BOLD, REGULAR = "C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/segoeui.ttf"
 ACCENT = (27, 175, 122)
 SPLITS = (0.31, 0.62)  # where the class-map and the LiDAR bands start (share of the width)
@@ -96,14 +104,39 @@ def render_views(dataset: Path, frame: int) -> Dict[str, npt.NDArray[np.float32]
     for key, source in (("render", rgb), ("classes", class_map)):
         picture = Image.fromarray(source[crop].copy())
         draw = ImageDraw.Draw(picture)
-        for annotation in annotations:
+        for annotation in annotations if key == "render" else []:  # 2D boxes on the render only
             x, y, w, h = annotation["bbox"]
             colour = BOX_RGB.get(annotation["category_id"], (255, 255, 255))
             draw.rectangle([x, y - TOP, x + w, y + h - TOP], outline=colour, width=3)
         views[key] = np.asarray(picture, dtype=np.float32)
 
     # the same frame as a point cloud, seen from behind and above
-    still = _sibling("render_lidar_range_still").build(dataset, frame, overlays=False)
+    range_still = _sibling("render_lidar_range_still")
+    still = range_still.build(dataset, frame, overlays=False)
+    boxes = []
+    scan_points = load_frame(dataset, frame, "kitti", KITTI_PATTERN).label
+    for annotation in labelled_boxes(annotations):  # the exact 3D boxes, drawn over the points
+        box = annotation["box3d"]
+        if box["location"][2] > MAX_RANGE_M:
+            continue
+        if points_in_box(scan_points, box, 0.1).sum() < MIN_POINTS_IN_BOX:
+            continue
+        corners = box_corners(box)
+        scene = np.stack([corners[:, 0], -corners[:, 1] + SENSOR_HEIGHT_M, corners[:, 2]], axis=1)
+        pixels, _ = project(
+            scene, range_still.POSITION, range_still.TARGET, still.size, range_still.HFOV_DEG
+        )
+        inside = (
+            (pixels[:, 0] > SPLITS[1] * WIDTH + 12)
+            & (pixels[:, 0] < WIDTH - 12)
+            & (pixels[:, 1] > LIDAR_TOP + 12)
+            & (pixels[:, 1] < LIDAR_TOP + HEIGHT - 12)
+        )
+        if inside.all():  # a box cut by the edge of the band reads as a mistake
+            boxes.append((scene, annotation["category_id"]))
+    still = draw_boxes(
+        still, boxes, BOX_RGB, range_still.POSITION, range_still.TARGET, range_still.HFOV_DEG
+    )
     band = np.asarray(still, dtype=np.float32)[LIDAR_TOP : LIDAR_TOP + HEIGHT]
     views["lidar"] = np.clip(
         band * LIDAR_GAIN, 0.0, 255.0
