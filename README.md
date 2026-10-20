@@ -82,12 +82,7 @@ BDD100K and Cityscapes' own annotation convention (see [`EXPERIMENT_LOG.md`](EXP
 *One frame, one panel per annotation type: everything is exported with the image and comes from the engine and the scene, not from a model.*
 
 Season, weather and time of day are drawn per scenario from real conditions data (`src/procedural/environment.py`),
-so one dataset run spans a wide range of driving conditions. Below is the same street from the same camera, with only
-the conditions changed:
-
-![The same street from the same camera in four seasons and three conditions: clear day, rain with a wet reflective road, and night](docs/images/seasons_conditions_matrix.jpg)
-
-*Columns are the four seasons, rows are clear day, rain and night. The layout, traffic and camera are identical in all twelve; the night row is brightened for the page.*
+so one dataset run spans a wide range of driving conditions.
 
 The street itself carries wet roads with reflections, realistic Rocketbox pedestrians (one crossing on the
 crosswalk), golden hour, fog, night, fall colour and winter, over streets with MUTCD-dimensioned lane markings,
@@ -106,10 +101,6 @@ exactly the same geometry. The sensor is matched to the KITTI Velodyne's field o
 
 *How a scan is made: the engine's depth image is read along 64 beams (81.6 degrees wide, 0.18 degree steps, up to
 80 m), and each return becomes a point. Colours are the engine's class map; boxes are the exact 3D labels.*
-
-![One LiDAR scan seen from behind and above, every point coloured by its distance from the sensor, from yellow for near through orange and magenta to purple for far, over faint range arcs at 10, 20, 40 and 60 metres](docs/images/lidar_range_view.jpg)
-
-*The whole scan as a range picture: the nearest points are bright yellow, the far buildings fade to purple, and the 64 beam rings lie on the road. A KITTI-profile frame; there are no class colours or boxes here, only distance.*
 
 | | |
 |---|---|
@@ -281,7 +272,6 @@ this path is used end-to-end (dataset generation, detector training, real-benchm
 ```bash
 PYTHONPATH=. python bin/visualize_lidar_scan.py --dataset live_dataset/kitti_run --frame 12 --pattern kitti --out lidar_viz
 PYTHONPATH=. python bin/render_lidar_explainer.py --dataset live_dataset/kitti_run --frame 12 --out lidar_how_it_works.gif   # the animation above
-PYTHONPATH=. python bin/render_lidar_range_still.py --dataset live_dataset/kitti_run --frame 12 --out lidar_range_view.jpg  # the range picture
 ```
 
 <details>
